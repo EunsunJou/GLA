@@ -165,3 +165,14 @@ def optimize(inp, ranked_constraints):
 
     return highest_violations[-1][0]
 
+def rip(overt, ranked_constraints):
+    inp = get_input(overt)
+    highest_violations = []
+
+    for parse, violation in tableaux[inp][overt].items():
+        highest = get_highest_violation(violation, ranked_constraints)
+        highest_violations.append((parse, highest))
+    
+    highest_violations = sorted(highest_violations, key=lambda x: ranked_constraints.index(x[1]))
+
+    return highest_violations[-1][0]
