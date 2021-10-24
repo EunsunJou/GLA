@@ -176,3 +176,12 @@ def rip(overt, ranked_constraints):
     highest_violations = sorted(highest_violations, key=lambda x: ranked_constraints.index(x[1]))
 
     return highest_violations[-1][0]
+
+def detect_error(overt, ranked_constraints):
+    optimization = optimize(get_input(overt), ranked_constraints)
+    rip_form = rip(overt, ranked_constraints)
+    if optimization != rip_form:
+        print("Time to relearn! rip: "+rip_form+", expected: "+optimization)
+    else:
+        print("Move on to next datum. "+rip_form+" identical to "+optimization)
+
