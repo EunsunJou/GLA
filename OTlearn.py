@@ -72,10 +72,10 @@ for t in tableaux_string:
 
     # Pick out the overt form (e.g., "[L1 L]"), parse (e.g., "/(L1) L/"), and violation profile ("0 1 0 0 0 1 ...")
     # (The order of constraints is constant for all parses)
-    overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"\s+([0123456789 ]+)")
+    candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"\s+([0123456789 ]+)")
     # This returns the list of (<overt form>, <parse>, <violation profile>) tuples,
     # Since the parentheses in the overt_pattern regex capture these three string groups.
-    candidates = re.findall(overt_pattern, t)
+    candidates = re.findall(candidate_pattern, t)
 
     parses = {}
 
@@ -184,4 +184,3 @@ def detect_error(overt, ranked_constraints):
         print("Time to relearn! rip: "+rip_form+", expected: "+optimization)
     else:
         print("Move on to next datum. "+rip_form+" identical to "+optimization)
-
