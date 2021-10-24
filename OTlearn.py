@@ -92,6 +92,16 @@ grammar_file.close()
 
 ##### Part 2: Defining utility functions #######################################
 
+def get_input(overt_string):
+    core_pattern = re.compile(r"\[(.*)\]")
+    if not re.search(core_pattern, overt_string):
+        raise ValueError("Format of overt form is not appropriate.")
+
+    core = re.search(core_pattern, overt_string).group(1)
+    core = re.sub(r"\d", "", core)
+    inp = "|"+core+"|"
+    return inp
+    
 # Add random noise within the range of the learning rate
 def random_noise(constraint_dict):
     for constraint in constraint_dict:
