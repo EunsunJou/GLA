@@ -77,7 +77,9 @@ for t in tableaux_string:
     # Since the parentheses in the overt_pattern regex capture these three string groups.
     candidates = re.findall(overt_pattern, t)
 
-    # tableaux[overt] = optimizations
+    
+
+    # overt_forms[parse] = parse_evals
     # parse_evals will look like: {parse1: <violation profile>, parse2: <violation profile>, ...}
     parse_evals = {}
 
