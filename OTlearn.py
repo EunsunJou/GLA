@@ -60,7 +60,8 @@ tableaux = {}
 for t in tableaux_string:
     # Pick out the overt form (e.g., "[L1 L]") from tableau
     overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"")
-    
+    # This returns the list of (<overt form>, <parse>) tuples
+    overt_parse_pair = re.findall(overt_pattern, t)
 
     # dictionary will be {<candidate 1>: <violation_profile>, <candidate 2>: <violation_profile>, ...}
     optimizations = {}
