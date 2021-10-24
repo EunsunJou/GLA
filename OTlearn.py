@@ -48,10 +48,10 @@ def map_lists_to_tuple_list(listone, listtwo):
 '''
 Sample structure of a tableau:
 
-{"|L H|": {"[L1 H] \-> /(L1) H/": (("WSP", 1), ("Iambic", 0), ...),
-           "[L1 H] \-> /(L1 H)/": (("WSP", 0), ("Iambic", 1), ...),
+{"[L1 H]": {"/(L1) H/": (("WSP", 1), ("Iambic", 0), ...),
+            "/(L1 H)/": (("WSP", 0), ("Iambic", 1), ...),
            ...}
- "|L L|": {"[L1 L] \-> /(L1) L/": (("WSP", 0), ("Iambic", 0), ...),
+ "[L1 L]": {"/(L1) L/": (("WSP", 0), ("Iambic", 0), ...),
            ...}
  ...}
 
