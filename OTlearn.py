@@ -46,14 +46,22 @@ def map_lists_to_tuple_list(listone, listtwo):
 
 # Extract violation profile for each parse for each overt form
 '''
-Sample structure of a tableau:
+Schematic structure of a tableau:
 
-{"[L1 H]": {"/(L1) H/": (("WSP", 1), ("Iambic", 0), ...),
-            "/(L1 H)/": (("WSP", 0), ("Iambic", 1), ...),
-           ...}
- "[L1 L]": {"/(L1) L/": (("WSP", 0), ("Iambic", 0), ...),
-           ...}
- ...}
+{input1: {overt1: {parse1: violation profile
+                   parse2: violation profile
+                   parse3: violation profile}
+          overt2: {parse1: violation profile
+                   parse2: violation profile}
+          }
+ input2: {overt1: {parse1: violation profile
+                   parse2: violation profile
+                   parse3: violation profile}
+          overt2: {parse1: violation profile
+                   parse2: violation profile}
+          } 
+ input3: ...
+}
 
 '''    
 tableaux = {}
