@@ -58,6 +58,10 @@ Sample structure of a tableau:
 '''    
 tableaux = {}
 for t in tableaux_string:
+    # Pick out the input form (e.g., "|L H|")
+    input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(\|.*\|)\"")
+    inp = re.findall(input_pattern, t)[0]
+
     # Pick out the overt form (e.g., "[L1 L]"), parse (e.g., "/(L1) L/"), and violation profile ("0 1 0 0 0 1 ...")
     # (The order of constraints is constant for all parses)
     overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"\s+([0123456789 ]+)")
@@ -72,9 +76,6 @@ for t in tableaux_string:
     for candidate in candidates:
         overt, parse, violations_string = candidate
 
-        if overt not in tableaux.keys():
-            tableaux[overt] = {}
-
         # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
         violations = violations_string.rstrip().split(' ')
         violations = [int(x) for x in violations] # convert string to integer
@@ -82,8 +83,9 @@ for t in tableaux_string:
         # Map the list of constraints with list of violations,
         # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
         violation_profile = map_lists_to_tuple_list(constraints, violations)
+        optimizations[parse] = violation_profile
 
-        tableaux[overt][parse] = violation_profile
+    tableaux[inp] = optimizations
 
 # Close files
 grammar_file.close()
