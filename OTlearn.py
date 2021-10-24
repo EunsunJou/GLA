@@ -31,7 +31,6 @@ tableaux_string = re.findall(tableau_pattern, grammar_text)
 # Findall returns tuple b/c substring. We only need the entire string
 tableaux_string = [t[0] for t in tableaux_string] 
 
-
 def map_lists_to_dict(keylist, valuelist):
     mapped_dict = {}
     for i in range(len(keylist)):
@@ -58,8 +57,9 @@ Sample structure of a tableau:
 '''    
 tableaux = {}
 for t in tableaux_string:
-    # Pick out the overt form (e.g., "[L1 L]") from tableau
-    overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"([0123456789 ]+)")
+    # Pick out the overt form (e.g., "[L1 L]"), parse (e.g., "/(L1) L/"), and violation profile ("0 1 0 0 0 1 ...")
+    # (The order of constraints is constant for all parses)
+    overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"\s+([0123456789 ]+)")
     # This returns the list of (<overt form>, <parse>, <violation profile>) tuples,
     # Since the parentheses in the overt_pattern regex capture these three string groups.
     candidates = re.findall(overt_pattern, t)
@@ -69,24 +69,24 @@ for t in tableaux_string:
 
     # re.findall returns tuples of (<candidate>, <violation profile>)
     # length of list returned by re.findall will equal number of candidates
-    for cand in candidates:
-        overt, parse, viols = cand
+    for candidate in candidates:
+        overt, parse, violations_string = candidate
+
+        if overt not in tableaux.keys():
+            tableaux[overt] = {}
 
         # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
-        viols = viols_raw.rstrip().split(' ')
-        viols = [int(x) for x in viols] # convert string to integer
+        violations = violations_string.rstrip().split(' ')
+        violations = [int(x) for x in violations] # convert string to integer
 
         # Map the list of constraints with list of violations,
         # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-        const_viols = map_lists_to_tuple_list(constraints, viols)
+        violation_profile = map_lists_to_tuple_list(constraints, violations)
 
-        optimizations[candidate] = const_viols
-    
-    tableaux[inp] = optimizations
+        tableaux[overt][parse] = violation_profile
 
 # Close files
 grammar_file.close()
-
 
 ##### Part 2: Defining utility functions #######################################
 
@@ -133,20 +133,9 @@ def get_all_violations(viols_tuple, ranked_constraints):
     else:
         return None
 
-def optimize(inp, ranked_constraints):
-    candidates = []
-    for cand, value in tableaux[inp].items():
-        candidates.append((cand, get_highest_violation(tableaux[inp][cand], ranked_constraints)))
-    candidates = sorted(candidates, key=lambda x:ranked_constraints.index(x[1]), reverse=True)
-    return(candidates[0][0])
-
-def detect_error()
-
 
 
 ranked_constraints = ranking(random_noise(const_dict))
-
-print(optimize('"|L H|"', ranked_constraints))
 
 
 
