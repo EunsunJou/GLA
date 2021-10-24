@@ -14,16 +14,17 @@ import sys
 
 ##### Part 1: Extract Information from Grammar File ############################
 
+# The concept of the GLA compares competing parses for one overt form,
+# But the grammar file created by Praat aggregates parses and their violation profile
+# by input (i.e., the UR) -- see sample grammar file (PraatMetricalGrammar.txt).
+# So some restructuring of data was needed to render the grammar usable for the GLA.
+
 grammar_file = open(sys.argv[1], 'r')
 grammar_text = grammar_file.read()
 
 ### Extract list of constraints, preserving order in grammar file
 constraint_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\").*")
 constraints = re.findall(constraint_pattern, grammar_text)
-
-const_dict={}
-for c in constraints:
-    const_dict[c] = 100
 
 ### Extract list of tableaux
 tableau_pattern = re.compile(r"(input.*\n(\s*candidate.*\s*)+)")
@@ -43,7 +44,7 @@ def map_lists_to_tuple_list(listone, listtwo):
         mapped_list.append((listone[i], listtwo[i]))
     return mapped_list
 
-# Extract violation profile for each candidate for each input
+# Extract violation profile for each parse for each overt form
 '''
 Sample structure of a tableau:
 
@@ -64,11 +65,10 @@ for t in tableaux_string:
     # Since the parentheses in the overt_pattern regex capture these three string groups.
     candidates = re.findall(overt_pattern, t)
 
-    # dictionary will be {<parse 1>: <violation_profile>, <parse 2>: <violation_profile>, ...}
+    # tableaux[overt] = optimizations
+    # optimizations will look like: {parse1: <violation profile>, parse2: <violation profile>, ...}
     optimizations = {}
 
-    # re.findall returns tuples of (<candidate>, <violation profile>)
-    # length of list returned by re.findall will equal number of candidates
     for candidate in candidates:
         overt, parse, violations_string = candidate
 
@@ -90,12 +90,14 @@ grammar_file.close()
 
 ##### Part 2: Defining utility functions #######################################
 
-def random_noise(const_dict):
-    for constraint in const_dict:
+# Add random noise within the range of the learning rate
+def random_noise(constraint_dict):
+    for constraint in constraint_dict:
         noise = random.uniform(-2.0, 2.0)
-        const_dict[constraint] = const_dict[constraint]+noise
-    return const_dict
+        constraint_dict[constraint] = constraint_dict[constraint]+noise
+    return constraint_dict
 
+# 
 def ranking(dict):
     ranked_list_raw=[]
     for constraint in dict:
@@ -132,7 +134,6 @@ def get_all_violations(viols_tuple, ranked_constraints):
         return violations
     else:
         return None
-
 
 
 ranked_constraints = ranking(random_noise(const_dict))
