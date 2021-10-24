@@ -131,7 +131,4 @@ def get_all_violations(violation_profile, ranked_constraints):
 
 
 
-ranked_constraints = ranking(random_noise(const_dict))
-
-
 
