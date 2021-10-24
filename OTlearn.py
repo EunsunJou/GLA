@@ -128,7 +128,16 @@ def get_all_violations(violation_profile, ranked_constraints):
     else:
         return None
 
+def optimize(overt, ranked_constraints):
+    highest_violations = []
 
+    for parse, violation in tableaux[overt].items():
+        highest = get_highest_violation(violation, ranked_constraints)
+        highest_violations.append((parse, highest))
+    
+    highest_violations = sorted(highest_violations, key=lambda x: ranked_constraints.index(x[1]))
+
+    return highest_violations[-1]
 
 
 
