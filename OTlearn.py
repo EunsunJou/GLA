@@ -97,7 +97,6 @@ def random_noise(constraint_dict):
         constraint_dict[constraint] = constraint_dict[constraint]+noise
     return constraint_dict
 
-# 
 def ranking(dict):
     ranked_list_raw=[]
     for constraint in dict:
@@ -106,34 +105,30 @@ def ranking(dict):
     ranked_list = [x[0] for x in ranked_list_raw]
     return ranked_list
 
-def get_highest_violation(viols_tuple, ranked_constraints):
-    for viol in viols_tuple:
-        if viol[0] not in ranked_constraints:
-            print(viol+" is not a valid constraint")
-            exit
-    viols_tuple_copy = viols_tuple
-    viols_tuple_copy = sorted(viols_tuple_copy, key=lambda x: ranked_constraints.index(x[0]))
-    for viol in viols_tuple_copy:
-        if viol[1] == 1:
-            return viol[0]
+def get_highest_violation(violation_profile, ranked_constraints):
+    violation_profile_copy = violation_profile
+    violation_profile_copy = sorted(violation_profile_copy, key=lambda x: ranked_constraints.index(x[0]))
+    for violation in violation_profile_copy:
+        if violation[1] == 1:
+            return violation[0]
             exit
     return None
 
-def get_all_violations(viols_tuple, ranked_constraints):
+def get_all_violations(violation_profile, ranked_constraints):
     violations = []
-    for viol in viols_tuple:
-        if viol[0] not in ranked_constraints:
-            print(viol+" is not a valid constraint")
-            exit
-    viols_tuple_copy = viols_tuple
-    viols_tuple_copy = sorted(viols_tuple_copy, key=lambda x: ranked_constraints.index(x[0]))
-    for viol in viols_tuple_copy:
-        if viol[1] == 1:
-            violations.append(viol)
+
+    violation_profile_copy = violation_profile
+    violation_profile_copy = sorted(violation_profile_copy, key=lambda x: ranked_constraints.index(x[0]))
+    for violation in violation_profile_copy:
+        if violation[1] == 1:
+            violations.append(violation)
+
     if len(violations) > 0:
         return violations
     else:
         return None
+
+
 
 
 ranked_constraints = ranking(random_noise(const_dict))
