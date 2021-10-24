@@ -96,7 +96,7 @@ grammar_file.close()
 def get_input(overt_string):
     core_pattern = re.compile(r"\[(.*)\]")
     if not re.search(core_pattern, overt_string):
-        raise ValueError("Format of overt form is not appropriate. It look like '[L1 H H]'.")
+        raise ValueError("Format of overt form "+overt_string+" is not appropriate. It look like '[L1 H H]'.")
 
     core = re.search(core_pattern, overt_string).group(1)
     core = re.sub(r"\d", "", core)
