@@ -59,17 +59,18 @@ Sample structure of a tableau:
 tableaux = {}
 for t in tableaux_string:
     # Pick out the overt form (e.g., "[L1 L]") from tableau
-    overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"")
-    # This returns the list of (<overt form>, <parse>) tuples
-    overt_parse_pair = re.findall(overt_pattern, t)
+    overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"([0123456789 ]+)")
+    # This returns the list of (<overt form>, <parse>, <violation profile>) tuples,
+    # Since the parentheses in the overt_pattern regex capture these three string groups.
+    candidates = re.findall(overt_pattern, t)
 
-    # dictionary will be {<candidate 1>: <violation_profile>, <candidate 2>: <violation_profile>, ...}
+    # dictionary will be {<parse 1>: <violation_profile>, <parse 2>: <violation_profile>, ...}
     optimizations = {}
 
     # re.findall returns tuples of (<candidate>, <violation profile>)
     # length of list returned by re.findall will equal number of candidates
-    for tup in re.findall(candidate_pattern, t):
-        candidate, viols_raw = tup
+    for cand in candidates:
+        overt, parse, viols = cand
 
         # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
         viols = viols_raw.rstrip().split(' ')
