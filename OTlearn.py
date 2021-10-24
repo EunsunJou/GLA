@@ -58,7 +58,7 @@ Sample structure of a tableau:
 '''    
 tableaux = {}
 for t in tableaux_string:
-    # Pick out the overt form (e.g., "|L L|") from tableau
+    # Pick out the overt form (e.g., "[L1 L]") from tableau
     overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"")
     
 
