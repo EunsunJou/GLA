@@ -137,7 +137,5 @@ def optimize(overt, ranked_constraints):
     
     highest_violations = sorted(highest_violations, key=lambda x: ranked_constraints.index(x[1]))
 
-    return highest_violations[-1]
-
-
+    return highest_violations[-1][0]
 
