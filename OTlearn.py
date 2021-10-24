@@ -78,8 +78,8 @@ for t in tableaux_string:
     candidates = re.findall(overt_pattern, t)
 
     # tableaux[overt] = optimizations
-    # optimizations will look like: {parse1: <violation profile>, parse2: <violation profile>, ...}
-    optimizations = {}
+    # parse_evals will look like: {parse1: <violation profile>, parse2: <violation profile>, ...}
+    parse_evals = {}
 
     for candidate in candidates:
         overt, parse, violations_string = candidate
@@ -91,7 +91,7 @@ for t in tableaux_string:
         # Map the list of constraints with list of violations,
         # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
         violation_profile = map_lists_to_tuple_list(constraints, violations)
-        optimizations[parse] = violation_profile
+        parse_evals[parse] = violation_profile
 
     tableaux[inp] = optimizations
 
