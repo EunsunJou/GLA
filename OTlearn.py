@@ -141,10 +141,10 @@ def get_all_violations(violation_profile, ranked_constraints):
     else:
         return None
 
-def optimize(overt, ranked_constraints):
+def optimize(inp, ranked_constraints):
     highest_violations = []
 
-    for parse, violation in tableaux[overt].items():
+    for parse, violation in tableaux[inp].items():
         highest = get_highest_violation(violation, ranked_constraints)
         highest_violations.append((parse, highest))
     
