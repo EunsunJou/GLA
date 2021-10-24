@@ -58,9 +58,9 @@ Sample structure of a tableau:
 '''    
 tableaux = {}
 for t in tableaux_string:
-    # Pick out the input (e.g., "|L L|") from tableau
-    input_pattern = re.compile(r"input\s\[\d+\]:\s(\".*\")")
-    inp = re.findall(input_pattern, t)[0] # re.findall will always return list of len 1
+    # Pick out the overt form (e.g., "|L L|") from tableau
+    overt_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*/[LH\(\)123456789 ]+/\"")
+    overts = re.findall(input_pattern, t)[0] # re.findall will always return list of len 1
 
     # Pick out the candidates (e.g., "[L1 L] -> /(L1) L/") and their violation profile
     candidate_pattern = re.compile(r"candidate.*(\".*\")\s([\d|\s]+)")
