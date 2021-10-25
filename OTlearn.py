@@ -92,20 +92,27 @@ for t in tableaux_string:
     # re.findall returns the list of (<overt form>, <parse>, <violation profile>) tuples,
     candidates = re.findall(candidate_pattern, t)
 
-    parse_evals = {}
-
+    overt_set = []
     for candidate in candidates:
-        overt, parse, violations_string = candidate
+        overt_set.append(candidate[0])
+    overt_set = set(overt_set)
 
-        # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
-        violations = violations_string.rstrip().split(' ')
-        violations = [int(x) for x in violations] # convert string to integer
+    for overt in overt_set:
+        parse_evals = {}
 
-        # Map the list of constraints with list of violations,
-        # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-        violation_profile = map_lists_to_dict(constraints, violations)
-        parse_evals[parse] = violation_profile
-        
+        for candidate in candidates:
+            cand_overt, parse, violation_string = candidate
+
+            if cand_overt == overt:
+                # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
+                violations = violation_string.rstrip().split(' ')
+                violations = [int(x) for x in violations] # convert string to integer
+
+                # Map the list of constraints with list of violations,
+                # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
+                violation_profile = map_lists_to_dict(constraints, violations)
+                parse_evals[parse] = violation_profile
+
         overt_tableaux[overt] = parse_evals
 
 # Build input_tableaux -- code very much alike overt_tableaux
@@ -118,13 +125,13 @@ for t in tableaux_string:
     inp = re.findall(input_pattern, t)[0]
 
     # Access the candidates again, to pick out parse and violation profile
-    candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH\d ]+\]).*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
+    candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"\[[LH\d ]+\].*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
     candidates = re.findall(candidate_pattern, t)
 
     parse_evals = {}
 
     for candidate in candidates:
-        overt, parse, violations_string = candidate
+        parse, violations_string = candidate
 
         # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
         violations = violations_string.rstrip().split(' ')
@@ -165,29 +172,6 @@ def ranking(constraint_dict):
     ranked_list = [x[0] for x in ranked_list_raw]
     return ranked_list
 
-def get_highest_violation(violation_profile, ranked_constraints):
-    violation_profile_copy = violation_profile
-    violation_profile_copy = sorted(violation_profile_copy, key=lambda x: ranked_constraints.index(x[0]))
-    for violation in violation_profile_copy:
-        if violation[1] == 1:
-            return violation[0]
-            exit
-    return None
-
-def get_all_violations(violation_profile, ranked_constraints):
-    violations = []
-
-    violation_profile_copy = violation_profile
-    violation_profile_copy = sorted(violation_profile_copy, key=lambda x: ranked_constraints.index(x[0]))
-    for violation in violation_profile_copy:
-        if violation[1] == 1:
-            violations.append(violation)
-
-    if len(violations) > 0:
-        return violations
-    else:
-        return None
-
 def optimize(inp, ranked_constraints):
     tableau_copy = input_tableaux[inp] # Copy tableau to not alter original
     optimize_list = []
@@ -201,36 +185,35 @@ def optimize(inp, ranked_constraints):
     if len(optimize_list) != len(tableau_copy.keys()):
         raise ValueError("Failed to fully rank parses for "+inp)
 
+    # Since the function iterates over the constraints in ranked order,
+    # the parses that violate higher constraints are appended earlier.
+    # So, the optimal candidate is the last one in the list.
     return optimize_list[-1]
 
-
 def rip(overt, ranked_constraints):
-    inp = get_input(overt)
-    highest_violations = []
-
-    for parse, violation in tableaux[inp][overt].items():
-        highest = get_highest_violation(violation, ranked_constraints)
-        highest_violations.append((parse, highest))
+    tableau_copy = overt_tableaux[overt] # Copy tableau to not alter original
+    optimize_list = []
+    while len(optimize_list) < len(tableau_copy.keys()):
+        # It's important to iterate over the constraints first!
+        for constraint in ranked_constraints:
+            for parse in tableau_copy.keys():
+                if tableau_copy[parse][constraint] == 1:
+                    if parse not in optimize_list:
+                        optimize_list.append(parse)
+    if len(optimize_list) != len(tableau_copy.keys()):
+        raise ValueError("Failed to fully rank parses for "+overt)
     
-    highest_violations = sorted(highest_violations, key=lambda x: ranked_constraints.index(x[1]))
-
-    return highest_violations[-1][0]
-
-def detect_error_write(overt, ranked_constraints, output_file):
-    optimization = optimize(get_input(overt), ranked_constraints)
-    rip_form = rip(overt, ranked_constraints)
-    if optimization != rip_form:
-        output_file.write("rip: "+rip_form+", expected: "+optimization)
-    else:
-        pass
+    return optimize_list[-1]
 
 def detect_error(overt, ranked_constraints):
     optimization = optimize(get_input(overt), ranked_constraints)
     rip_form = rip(overt, ranked_constraints)
     if optimization != rip_form:
-        print("Time to relearn! rip: "+rip_form+", expected: "+optimization)
+        return True
     else:
         pass
+
+def rerank()
 
 ##### Part 3: Learning #########################################################
 
@@ -251,9 +234,7 @@ constraint_dict={}
 for c in constraints:
     constraint_dict[c] = 100.0
 
-ranked_constraints = ranking(random_noise(constraint_dict))
-
-print(optimize("|L L|", ranked_constraints))
+print(ranked_constraints)
 
 
 
