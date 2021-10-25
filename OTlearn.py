@@ -53,7 +53,7 @@ def map_lists_to_tuple_list(listone, listtwo):
 
 # Extract violation profile for each parse for each overt form
 '''
-Schematic structure of a tableau:
+Schematic structure of a tableau in Grammar File:
 
 {input1: {overt1: {parse1: violation profile
                    parse2: violation profile
@@ -71,23 +71,27 @@ Schematic structure of a tableau:
 }
 
 '''    
-tableaux = {}
-for t in tableaux_string:
-    # Pick out the input form (e.g., "|L H|")
-    input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(\|.*\|)\"")
-    inp = re.findall(input_pattern, t)[0]
 
-    # Pick out the overt form (e.g., "[L1 L]"), parse (e.g., "/(L1) L/"), and violation profile ("0 1 0 0 0 1 ...")
-    # (The order of constraints is constant for all parses)
-    candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH123456789 ]+\]).*(/[LH\(\)123456789 ]+/)\"\s+([0123456789 ]+)")
-    # This returns the list of (<overt form>, <parse>, <violation profile>) tuples,
+### There will be two separate dictionaries: 
+### one where parses are aggregated by input (input_tableaux),
+### and one where parses are aggregated by overt form (overt_tableaux)
+
+### First, compile regex patterns for picking up inputs, overt forms, parses, and violation profile
+# This picks out the input form ("|L H|")
+input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(\|.*\|)\"") 
+
+# This picks out the overt form ("[L1 L]"), parse ("/(L1) L/"), and violation profile ("0 1 0 ...")
+# (The order of constraints is constant for all parses)
+candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH\d ]+\]).*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
+
+### Now we can build the two tableaux.
+# Build overt_tableaux first
+overt_tableaux = {}
+for t in tableaux_string:
     # Since the parentheses in the overt_pattern regex capture these three string groups.
+    # re.findall returns the list of (<overt form>, <parse>, <violation profile>) tuples,
     candidates = re.findall(candidate_pattern, t)
 
-    parses = {}
-
-    # overt_forms[parse] = parse_evals
-    # parse_evals will look like: {parse1: <violation profile>, parse2: <violation profile>, ...}
     parse_evals = {}
 
     for candidate in candidates:
@@ -101,10 +105,38 @@ for t in tableaux_string:
         # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
         violation_profile = map_lists_to_tuple_list(constraints, violations)
         parse_evals[parse] = violation_profile
+        
+        overt_tableaux[overt] = parse_evals
 
-        parses[overt] = parse_evals
+# Build input_tableaux -- code very much alike overt_tableaux
+input_tableaux = {}
+for t in tableaux_string:
+    # Since there's only one input form per tableau,
+    # re.findall should always yield a list of length 1
+    if len(re.findall(input_pattern, t)) > 1:
+        raise ValueError("Found more than one input form in tableau. Please check grammar file.")
+    inp = re.findall(input_pattern, t)[0]
 
-    tableaux[inp] = parses
+    # Access the candidates again, to pick out parse and violation profile
+    candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH\d ]+\]).*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
+    candidates = re.findall(candidate_pattern, t)
+
+    parse_evals = {}
+
+    for candidate in candidates:
+        overt, parse, violations_string = candidate
+
+        # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
+        violations = violations_string.rstrip().split(' ')
+        violations = [int(x) for x in violations] # convert string to integer
+
+        # Map the list of constraints with list of violations,
+        # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
+        violation_profile = map_lists_to_tuple_list(constraints, violations)
+        parse_evals[parse] = violation_profile
+        
+    input_tableaux[inp] = parse_evals
+
 
 ##### Part 2: Defining utility functions #######################################
 
@@ -224,6 +256,5 @@ for d in overt_list:
     print("learning datum "+str(i)+"...")
     i += 1
     detect_error(d, ranked_constraints)
-
 
 #results_file.close() 
