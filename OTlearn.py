@@ -190,14 +190,18 @@ def get_all_violations(violation_profile, ranked_constraints):
 
 def optimize(inp, ranked_constraints):
     tableau_copy = input_tableaux[inp] # Copy tableau to not alter original
-    while len(tableau_copy.keys()) > 1:
-        for parse in tableau_copy.keys():
-            for constraint in ranked_constraints:
+    optimize_list = []
+    while len(optimize_list) < len(tableau_copy.keys()):
+        # It's important to iterate over the constraints first!
+        for constraint in ranked_constraints:
+            for parse in tableau_copy.keys():
                 if tableau_copy[parse][constraint] == 1:
-                    del tableau_copy[parse]
-    if len(tableau_copy.keys()) != 1:
-        raise ValueError('Cannot identify unique winner')
-    return tableau_copy.keys()[0]
+                    if parse not in optimize_list:
+                        optimize_list.append(parse)
+    if len(optimize_list) != len(tableau_copy.keys()):
+        raise ValueError("Failed to fully rank parses for "+inp)
+
+    return optimize_list[-1]
 
 
 def rip(overt, ranked_constraints):
@@ -248,5 +252,9 @@ for c in constraints:
     constraint_dict[c] = 100.0
 
 ranked_constraints = ranking(random_noise(constraint_dict))
+
+print(optimize("|L L|", ranked_constraints))
+
+
 
 #results_file.close() 
