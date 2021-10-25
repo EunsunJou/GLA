@@ -137,7 +137,6 @@ for t in tableaux_string:
         
     input_tableaux[inp] = parse_evals
 
-
 ##### Part 2: Defining utility functions #######################################
 
 # Extract input from overt form
@@ -190,15 +189,16 @@ def get_all_violations(violation_profile, ranked_constraints):
         return None
 
 def optimize(inp, ranked_constraints):
-    for overt, parse in tableaux[inp].keys():
-        tableau_copy = tableaux[inp][overt]
-        while len(tableau_copy.keys()) > 1:
+    tableau_copy = input_tableaux[inp] # Copy tableau to not alter original
+    while len(tableau_copy.keys()) > 1:
+        for parse in tableau_copy.keys():
             for constraint in ranked_constraints:
-                if tableau_copy[parse][constraints] == 1:
+                if tableau_copy[parse][constraint] == 1:
                     del tableau_copy[parse]
-        if len(tableau_copy.keys()) != 1:
-            raise ValueError('Cannot identify unique winner')
-        
+    if len(tableau_copy.keys()) != 1:
+        raise ValueError('Cannot identify unique winner')
+    return tableau_copy.keys()[0]
+
 
 def rip(overt, ranked_constraints):
     inp = get_input(overt)
@@ -248,13 +248,5 @@ for c in constraints:
     constraint_dict[c] = 100.0
 
 ranked_constraints = ranking(random_noise(constraint_dict))
-
-i=0
-
-for d in overt_list:
-    d = d.rstrip()
-    print("learning datum "+str(i)+"...")
-    i += 1
-    detect_error(d, ranked_constraints)
 
 #results_file.close() 
