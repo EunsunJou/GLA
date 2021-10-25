@@ -196,3 +196,34 @@ def detect_error(overt, ranked_constraints):
     else:
         pass
 
+##### Part 3: Learning #########################################################
+
+# Timestamp for file
+yy = str(datetime.datetime.now())[2:4]
+mm = str(datetime.datetime.now())[5:7]
+dd = str(datetime.datetime.now())[8:10]
+hh = str(datetime.datetime.now())[11:13]
+mn = str(datetime.datetime.now())[14:16]
+ss = str(datetime.datetime.now())[17:19]
+
+timestamp = yy+mm+dd+"_"+hh+mn+ss
+
+#results_file = open('RIPGLA_result'+timestamp+'.txt', 'w')
+
+constraint_dict={}
+
+for c in constraints:
+    constraint_dict[c] = 100.0
+
+ranked_constraints = ranking(random_noise(constraint_dict))
+
+i=0
+
+for d in overt_list:
+    d = d.rstrip()
+    print("learning datum "+str(i)+"...")
+    i += 1
+    detect_error(d, ranked_constraints)
+
+
+#results_file.close() 
