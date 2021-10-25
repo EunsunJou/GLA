@@ -181,7 +181,7 @@ def optimize(inp, ranked_constraints):
             for parse in tableau_copy.keys():
                 if tableau_copy[parse][constraint] == 1:
                     if parse not in optimize_list:
-                        optimize_list.append(parse)
+                        optimize_list.append((parse, tableau_copy[parse]))
     if len(optimize_list) != len(tableau_copy.keys()):
         raise ValueError("Failed to fully rank parses for "+inp)
 
@@ -199,7 +199,7 @@ def rip(overt, ranked_constraints):
             for parse in tableau_copy.keys():
                 if tableau_copy[parse][constraint] == 1:
                     if parse not in optimize_list:
-                        optimize_list.append(parse)
+                        optimize_list.append((parse, tableau_copy[parse]))
     if len(optimize_list) != len(tableau_copy.keys()):
         raise ValueError("Failed to fully rank parses for "+overt)
     
