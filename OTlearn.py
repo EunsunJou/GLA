@@ -5,12 +5,21 @@
 import re
 import random
 import sys
+import datetime
 
 # functions to define: compare, shake, optimize, rank
 
 # Execute by command 'python OTlearn.py <Grammar File> <Data File>'
 # Grammar File is sys.argv[1], Data File is sys.argv[2]
+grammar_file = open(sys.argv[1], 'r')
+grammar_text = grammar_file.read()
 
+overt_file = open(sys.argv[2], 'r')
+overt_list = overt_file.readlines()
+
+# Close files
+grammar_file.close()
+overt_file.close()
 
 ##### Part 1: Extract Information from Grammar File ############################
 
@@ -19,8 +28,6 @@ import sys
 # by input (i.e., the UR) -- see sample grammar file (PraatMetricalGrammar.txt).
 # So some restructuring of data was needed to render the grammar usable for the GLA.
 
-grammar_file = open(sys.argv[1], 'r')
-grammar_text = grammar_file.read()
 
 ### Extract list of constraints, preserving order in grammar file
 constraint_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\").*")
@@ -99,9 +106,6 @@ for t in tableaux_string:
 
     tableaux[inp] = parses
 
-# Close files
-grammar_file.close()
-
 ##### Part 2: Defining utility functions #######################################
 
 # Extract input from overt form
@@ -122,11 +126,11 @@ def random_noise(constraint_dict):
         constraint_dict[constraint] = constraint_dict[constraint]+noise
     return constraint_dict
 
-def ranking(dict):
+def ranking(constraint_dict):
     ranked_list_raw=[]
-    for constraint in dict:
-        ranked_list_raw.append((constraint, dict[constraint]))
-    ranked_list_raw = sorted(ranked_list_raw, key=lambda item: item[1], reverse=True)
+    for constraint in constraint_dict:
+        ranked_list_raw.append((constraint, constraint_dict[constraint]))
+    ranked_list_raw = sorted(ranked_list_raw, key=lambda x: x[1], reverse=True)
     ranked_list = [x[0] for x in ranked_list_raw]
     return ranked_list
 
@@ -154,16 +158,15 @@ def get_all_violations(violation_profile, ranked_constraints):
         return None
 
 def optimize(inp, ranked_constraints):
-    highest_violations = []
-
-    for overt, parse in tableaux[inp].items():
-        for parse, violation in tableaux[inp][overt].items():
-            highest = get_highest_violation(violation, ranked_constraints)
-            highest_violations.append((parse, highest))
-    
-    highest_violations = sorted(highest_violations, key=lambda x: ranked_constraints.index(x[1]))
-
-    return highest_violations[-1][0]
+    for overt, parse in tableaux[inp].keys():
+        tableau_copy = tableaux[inp][overt]
+        while len(tableau_copy.keys()) > 1:
+            for constraint in ranked_constraints:
+                if tableau_copy[parse][constraints] == 1:
+                    del tableau_copy[parse]
+        if len(tableau_copy.keys()) != 1:
+            raise ValueError('Cannot identify unique winner')
+        
 
 def rip(overt, ranked_constraints):
     inp = get_input(overt)
@@ -177,10 +180,19 @@ def rip(overt, ranked_constraints):
 
     return highest_violations[-1][0]
 
+def detect_error_write(overt, ranked_constraints, output_file):
+    optimization = optimize(get_input(overt), ranked_constraints)
+    rip_form = rip(overt, ranked_constraints)
+    if optimization != rip_form:
+        output_file.write("rip: "+rip_form+", expected: "+optimization)
+    else:
+        pass
+
 def detect_error(overt, ranked_constraints):
     optimization = optimize(get_input(overt), ranked_constraints)
     rip_form = rip(overt, ranked_constraints)
     if optimization != rip_form:
         print("Time to relearn! rip: "+rip_form+", expected: "+optimization)
     else:
-        print("Move on to next datum. "+rip_form+" identical to "+optimization)
+        pass
+
