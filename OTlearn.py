@@ -103,7 +103,7 @@ for t in tableaux_string:
 
         # Map the list of constraints with list of violations,
         # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-        violation_profile = map_lists_to_tuple_list(constraints, violations)
+        violation_profile = map_lists_to_dict(constraints, violations)
         parse_evals[parse] = violation_profile
         
         overt_tableaux[overt] = parse_evals
@@ -132,7 +132,7 @@ for t in tableaux_string:
 
         # Map the list of constraints with list of violations,
         # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-        violation_profile = map_lists_to_tuple_list(constraints, violations)
+        violation_profile = map_lists_to_dict(constraints, violations)
         parse_evals[parse] = violation_profile
         
     input_tableaux[inp] = parse_evals
