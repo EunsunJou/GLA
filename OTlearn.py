@@ -1,13 +1,31 @@
-# Python implementation of Stochastic OT
-# Inspired by Harmonic Grammar implementation of Connor McLaughlin:
-# https://github.com/connormcl/harmonic-grammar
+##### Python implementation of Stochastic OT
+##### Inspired by Harmonic Grammar implementation by Connor McLaughlin:
+##### https://github.com/connormcl/harmonic-grammar
+
+
+##### SOME TERMINOLOGY #####
+# Overt (form): a datum that the learner hears. 
+#               It may contain stress info but not foot structure info.
+# Input (form): the underlying representation of an overt form
+# Parse: the structural analysis of an overt form, including foot information.
+#        It is the output form of a tableau corresponding to the input form.
+#        The parse of an overt form varies depending on constranit ranking. 
+# Optimize: Compute the parse given the input and a constraint ranking.
+
+##### SOME ABBREVIATIONS (FOR VARIABLE NAMING) #####
+# constraint: const
+# violation: viol
+# dictionary: dict
+# input: inp (to avoid overlapping with input() function)
+
 
 import re
 import random
 import sys
 import datetime
 
-# Execute by command 'python OTlearn.py <Grammar File> <Data File>'
+
+# Execute by command 'python OTlearn.py <Grammar File> <Input File>'
 # Grammar File is sys.argv[1], Data File is sys.argv[2]
 grammar_file = open(sys.argv[1], 'r')
 grammar_text = grammar_file.read()
@@ -27,7 +45,8 @@ overt_file.close()
 # So some restructuring of data was needed to render the grammar usable for the GLA.
 
 
-### Extract list of constraints, preserving order in grammar file
+### Extract list of constraints, preserving their order in grammar file
+# Preserving order is important because the violation profiles in tableaux are based on this order.
 constraint_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\").*")
 constraints = re.findall(constraint_pattern, grammar_text)
 
