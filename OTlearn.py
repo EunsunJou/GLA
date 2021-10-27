@@ -7,8 +7,6 @@ import random
 import sys
 import datetime
 
-# functions to define: compare, shake, optimize, rank
-
 # Execute by command 'python OTlearn.py <Grammar File> <Data File>'
 # Grammar File is sys.argv[1], Data File is sys.argv[2]
 grammar_file = open(sys.argv[1], 'r')
