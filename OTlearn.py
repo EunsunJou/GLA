@@ -158,10 +158,19 @@ def get_input(overt_string):
     return inp
 
 # Add random noise within the range of the learning rate
-def random_noise(constraint_dict):
+def initialize_grammar(constraint_dict):
     for constraint in constraint_dict:
         noise = random.uniform(-2.0, 2.0)
-        constraint_dict[constraint] = constraint_dict[constraint]+noise
+        constraint_dict[constraint] = constraint_dict[constraint] + noise
+    return constraint_dict
+
+def adjust_grammar(good_constraints, bad_constraints, constraint_dict):
+    for constraint in good_constraints:
+        noise = random.uniform(0, 2.0)
+        constraint_dict[constraint] = constraint_dict[constraint] + noise
+    for constraint in bad_constraints:
+        noise = random.uniform(-2.0, 0)
+        constraint_dict[constraint] = constraint_dict[constraint] + noise
     return constraint_dict
 
 def ranking(constraint_dict):
@@ -181,14 +190,17 @@ def optimize(inp, ranked_constraints):
             for parse in tableau_copy.keys():
                 if tableau_copy[parse][constraint] == 1:
                     if parse not in optimize_list:
-                        optimize_list.append((parse, tableau_copy[parse]))
+                        optimize_list.append(parse)
     if len(optimize_list) != len(tableau_copy.keys()):
         raise ValueError("Failed to fully rank parses for "+inp)
 
     # Since the function iterates over the constraints in ranked order,
     # the parses that violate higher constraints are appended earlier.
     # So, the optimal candidate is the last one in the list.
-    return optimize_list[-1]
+    
+    winner = optimize_list[-1]
+    
+    return ((winner, input_tableaux[inp][winner]))
 
 def rip(overt, ranked_constraints):
     tableau_copy = overt_tableaux[overt] # Copy tableau to not alter original
@@ -199,11 +211,13 @@ def rip(overt, ranked_constraints):
             for parse in tableau_copy.keys():
                 if tableau_copy[parse][constraint] == 1:
                     if parse not in optimize_list:
-                        optimize_list.append((parse, tableau_copy[parse]))
+                        optimize_list.append(parse)
     if len(optimize_list) != len(tableau_copy.keys()):
         raise ValueError("Failed to fully rank parses for "+overt)
     
-    return optimize_list[-1]
+    winner = optimize_list[-1]
+    
+    return ((winner, overt_tableaux[overt][winner]))
 
 def detect_error(overt, ranked_constraints):
     optimization = optimize(get_input(overt), ranked_constraints)
@@ -213,7 +227,23 @@ def detect_error(overt, ranked_constraints):
     else:
         pass
 
-def rerank()
+def learn(overt, constraint_dict, ranked_constraints):
+    optimization = optimize(get_input(overt), ranked_constraints)
+    rip_parse = rip(overt, ranked_constraints)
+    if optimization == rip_parse:
+        print("No error detected")
+        pass
+    else:
+        print("Error detected...adjusting grammar")
+        good_constraints = []
+        bad_constraints = []
+        for constraint in rip_parse[1].keys():
+            if rip_parse[1][constraint] == 1 and optimization[1][constraint] == 0:
+                bad_constraints.append(constraint)
+            elif rip_parse[1][constraint] == 0 and optimization[1][constraint] == 1:
+                good_constraints.append(constraint)
+        adjust_grammar(good_constraints, bad_constraints, constraint_dict)
+
 
 ##### Part 3: Learning #########################################################
 
@@ -227,15 +257,28 @@ ss = str(datetime.datetime.now())[17:19]
 
 timestamp = yy+mm+dd+"_"+hh+mn+ss
 
-#results_file = open('RIPGLA_result'+timestamp+'.txt', 'w')
+results_file = open('RIPGLA_result'+timestamp+'.txt', 'w')
 
 constraint_dict={}
 
 for c in constraints:
     constraint_dict[c] = 100.0
 
-print(ranked_constraints)
+ranked_constraints = initialize_grammar(constraint_dict)
 
+pre_learning_grammar = constraint_dict
 
+results_file.write("Pre-learn grammar:\n")
+results_file.write(str(pre_learning_grammar))
 
-#results_file.close() 
+iter_counter = 1
+error_counter = 0
+
+while iter_counter < 100:
+    print("Iteration "+str(iter_counter)+"...")
+    for c in 
+
+results_file.write("Post-learn grammar:\n")
+results_file.write(str(constraint_dict))
+
+results_file.close() 
