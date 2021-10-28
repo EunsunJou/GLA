@@ -25,13 +25,21 @@ import sys
 import datetime
 
 
-# Execute by command 'python OTlearn.py <Grammar File> <Input File>'
+# The command asks for two .txt file names as parameters: the grammar file and the target file.
+# I.e., the command looks like this: 'python OTlearn.py <Grammar File> <Target File>'.
+
+# The Grammar file is a specific format of a txt file created by Praat
+# (It is called an "otgrammar" object in the Praat documentation.)
 # Grammar File is sys.argv[1], Data File is sys.argv[2]
+
+if len(sys.argv) != 3:
+    raise IndexError("Please provide two .txt files as parameters: first the grammar file, then the target file.")
+
 grammar_file = open(sys.argv[1], 'r')
 grammar_text = grammar_file.read()
 
-overt_file = open(sys.argv[2], 'r')
-overt_list = overt_file.readlines()
+target_file = open(sys.argv[2], 'r')
+target_list = target_file.readlines()
 
 # Close files
 grammar_file.close()
