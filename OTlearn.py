@@ -51,9 +51,14 @@ overt_file.close()
 
 ##### Part 1: Extract Information from Grammar File ############################
 
+# Praat's otgrammar file is a list of constraints followed by a list of OT tableaux, 
+# which provide information about the violation profile for each input-parse pair. 
+# The format of a tableaux and its elements (input form, overt form, violation profile) 
+# can be expressed in regular grammar.
 
 ### Extract list of constraints, preserving their order in grammar file
-# Preserving order is important because the violation profiles in tableaux are based on this order.
+# Preserving order is important because the violation profiles in the tableaux 
+# are based on this order.
 constraint_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\").*")
 constraints = re.findall(constraint_pattern, grammar_text)
 
