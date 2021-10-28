@@ -51,11 +51,6 @@ overt_file.close()
 
 ##### Part 1: Extract Information from Grammar File ############################
 
-# The concept of the GLA compares competing parses for one overt form,
-# But the grammar file created by Praat aggregates parses and their violation profile
-# by input (i.e., the UR) -- see sample grammar file (PraatMetricalGrammar.txt).
-# So some restructuring of data was needed to render the grammar usable for the GLA.
-
 
 ### Extract list of constraints, preserving their order in grammar file
 # Preserving order is important because the violation profiles in tableaux are based on this order.
