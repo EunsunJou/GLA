@@ -16,6 +16,7 @@
 # constraint: const
 # violation: viol
 # dictionary: dict
+# candidate: cand
 # input: inp (to avoid overlapping with input() function)
 
 
@@ -59,8 +60,8 @@ overt_file.close()
 ### Extract list of constraints, preserving their order in grammar file
 # Preserving order is important because the violation profiles in the tableaux 
 # are based on this order.
-constraint_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\").*")
-constraints = re.findall(constraint_pattern, grammar_text)
+const_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\").*")
+consts = re.findall(const_pattern, grammar_text)
 
 ### Extract list of tableaux
 tableau_pattern = re.compile(r"(input.*\n(\s*candidate.*\s*)+)")
@@ -68,13 +69,22 @@ tableaux_string = re.findall(tableau_pattern, grammar_text)
 # Findall returns tuple b/c substring. We only need the entire string
 tableaux_string = [t[0] for t in tableaux_string] 
 
+# I define two helper functions here to use later in breaking up tableaux.
+# This function combines two lists of the same length into a dictionary.
+# The first list provides the keys, and the second list the values.
 def map_lists_to_dict(keylist, valuelist):
+    if len(keylist) != len(valuelist):
+        raise ValueError("Length of lists do not match.")
     mapped_dict = {}
     for i in range(len(keylist)):
         mapped_dict[keylist[i]] = valuelist[i]
     return mapped_dict
 
+# This function combines two lists into a list of tuples.
+# The first list provides the 0th element of the tuple, the second list the 1st.
 def map_lists_to_tuple_list(listone, listtwo):
+    if len(keylist) != len(valuelist):
+        raise ValueError("Length of lists do not match.")
     mapped_list = []
     for i in range(len(listone)):
         mapped_list.append((listone[i], listtwo[i]))
@@ -103,7 +113,7 @@ Schematic structure of a tableau in Grammar File:
 
 ### There will be two separate dictionaries: 
 ### one where parses are aggregated by input (input_tableaux),
-### and one where parses are aggregated by overt form (overt_tableaux)
+### and one where parses are aggregated by overt form (overt_tableaux).
 
 ### First, compile regex patterns for picking up inputs, overt forms, parses, and violation profile
 # This picks out the input form ("|L H|")
@@ -117,34 +127,44 @@ candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH\d ]+\]).*(/[LH\(
 # Build overt_tableaux first
 overt_tableaux = {}
 for t in tableaux_string:
-    # Since the parentheses in the overt_pattern regex capture these three string groups.
-    # re.findall returns the list of (<overt form>, <parse>, <violation profile>) tuples,
+    # Since the parentheses in the overt_pattern regex capture these three string groups,
+    # re.findall returns the list of (<overt form>, <parse>, <violation profile>) tuples.
     candidates = re.findall(candidate_pattern, t)
 
     overt_set = []
-    for candidate in candidates:
-        overt_set.append(candidate[0])
+    # A cand is a (<overt form>, <parse>, <violation profile>) tuple
+    for cand in candidates: 
+        overt_set.append(cand[0])
+    # Remove duplicates from overt_set
     overt_set = set(overt_set)
 
+    # Each overt form will be a key of overt_tableaux.
+    # The value of each overt form will be a parse_evals dictionary.
     for overt in overt_set:
+        # The keys of a parse_evals are the parses of the affiliated overt form.
+        # The value of a parse is its violation profile.
         parse_evals = {}
 
-        for candidate in candidates:
-            cand_overt, parse, violation_string = candidate
+        for cand in candidates:
+            cand_overt, parse, viols_string = cand
 
+            # Pick out the cand tuples affiliated with the overt form.
             if cand_overt == overt:
-                # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
-                violations = violation_string.rstrip().split(' ')
-                violations = [int(x) for x in violations] # convert string to integer
+                # convert violation profile from string (e.g., '0 1 0') 
+                # to list (e.g., ['0', '1', '0'])
+                viols = viols_string.rstrip().split(' ')
+                # convert string (e.g., '0') to integer (e.g., 0)
+                viols = [int(x) for x in viols] 
 
                 # Map the list of constraints with list of violations,
                 # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-                violation_profile = map_lists_to_dict(constraints, violations)
-                parse_evals[parse] = violation_profile
+                viol_profile = map_lists_to_dict(constraints, viols)
+                
+                parse_evals[parse] = viol_profile
 
         overt_tableaux[overt] = parse_evals
 
-# Build input_tableaux -- code very much alike overt_tableaux
+# Build input_tableaux -- code very similar to overt_tableaux
 input_tableaux = {}
 for t in tableaux_string:
     # Since there's only one input form per tableau,
@@ -153,7 +173,8 @@ for t in tableaux_string:
         raise ValueError("Found more than one input form in tableau. Please check grammar file.")
     inp = re.findall(input_pattern, t)[0]
 
-    # Access the candidates again, to pick out parse and violation profile
+    # Access the candidates again, to pick out parse and violation profile.
+    # Note that the 
     candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"\[[LH\d ]+\].*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
     candidates = re.findall(candidate_pattern, t)
 
@@ -297,17 +318,6 @@ ranked_constraints = initialize_grammar(constraint_dict)
 
 pre_learning_grammar = constraint_dict
 
-results_file.write("Pre-learn grammar:\n")
-results_file.write(str(pre_learning_grammar))
 
-iter_counter = 1
-error_counter = 0
-
-while iter_counter < 100:
-    print("Iteration "+str(iter_counter)+"...")
-    for c in 
-
-results_file.write("Post-learn grammar:\n")
-results_file.write(str(constraint_dict))
 
 results_file.close() 
