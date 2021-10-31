@@ -275,14 +275,6 @@ def rip(overt, ranked_constraints):
     
     return (winner, overt_tableaux[overt][winner])
 
-# 
-def detect_error(overt, ranked_constraints):
-    optimization = optimize(get_input(overt), ranked_constraints)
-    rip_form = rip(overt, ranked_constraints)
-    if optimization != rip_form:
-        return True
-    else:
-        pass
 
 def learn(overt, constraint_dict, ranked_constraints):
     optimization = optimize(get_input(overt), ranked_constraints)
