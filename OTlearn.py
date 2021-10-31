@@ -47,7 +47,7 @@ target_list = target_file.readlines()
 
 # Close files
 grammar_file.close()
-overt_file.close()
+target_file.close()
 
 
 ##### Part 1: Extract Information from Grammar File ############################
@@ -146,10 +146,10 @@ for t in tableaux_string:
         parse_evals = {}
 
         for cand in candidates:
-            cand[0] = cand_overt
-            cand[1] = parse
-            cand[2] = viols_string
-            
+            cand_overt = cand[0]
+            parse = cand[1]
+            viols_string = cand[2]
+
             # Pick out the cand tuples affiliated with the overt form.
             if cand_overt == overt:
                 # convert violation profile from string (e.g., '0 1 0') 
@@ -160,7 +160,7 @@ for t in tableaux_string:
 
                 # Map the list of constraints with list of violations,
                 # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-                viol_profile = map_lists_to_dict(constraints, viols)
+                viol_profile = map_lists_to_dict(consts, viols)
                 
                 parse_evals[parse] = viol_profile
 
@@ -176,27 +176,25 @@ for t in tableaux_string:
     inp = re.findall(input_pattern, t)[0]
 
     # Access the candidates again, to pick out parse and violation profile.
-    # Note that the 
-    candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"\[[LH\d ]+\].*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
     candidates = re.findall(candidate_pattern, t)
 
+    # Following for-loop is identical to overt_tableaux
     parse_evals = {}
+    for cand in candidates:
+        parse = cand[1]
+        viols_string = cand[2]
 
-    for candidate in candidates:
-        parse, violations_string = candidate
+        viols = viols_string.rstrip().split(' ')
+        viols = [int(x) for x in viols] 
 
-        # convert violation profile (e.g., '0 1 0') from string to list (e.g., ['0', '1', '0'])
-        violations = violations_string.rstrip().split(' ')
-        violations = [int(x) for x in violations] # convert string to integer
-
-        # Map the list of constraints with list of violations,
-        # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-        violation_profile = map_lists_to_dict(constraints, violations)
-        parse_evals[parse] = violation_profile
+        viol_profile = map_lists_to_dict(consts, viols)
+        parse_evals[parse] = viol_profile
         
     input_tableaux[inp] = parse_evals
 
 ##### Part 2: Defining utility functions #######################################
+
+print(input_tableaux["|L L|"])
 
 # Extract input from overt form
 def get_input(overt_string):
@@ -313,7 +311,7 @@ results_file = open('RIPGLA_result'+timestamp+'.txt', 'w')
 
 constraint_dict={}
 
-for c in constraints:
+for c in consts:
     constraint_dict[c] = 100.0
 
 ranked_constraints = initialize_grammar(constraint_dict)
