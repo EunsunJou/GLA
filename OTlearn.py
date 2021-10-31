@@ -235,22 +235,22 @@ def ranking(const_dict):
 # (Basically a run-of-the-mill OT tableau)
 def generate(inp, ranked_consts):
     tableau_copy = input_tableaux[inp] # Copy tableau to not alter original
-    ranked_inputs = []
-    while len(ranked_inputs) < len(tableau_copy.keys()):
+    ranked_parses = []
+    while len(ranked_parses) < len(tableau_copy.keys()):
         # It's important to iterate over the constraints first!
         for const in ranked_consts:
             for parse in tableau_copy.keys():
                 if tableau_copy[parse][const] == 1:
-                    if parse not in ranked_inputs:
-                        ranked_inputs.append(parse)
-    if len(ranked_inputs) != len(tableau_copy.keys()):
+                    if parse not in ranked_parses:
+                        ranked_parses.append(parse)
+    if len(ranked_parses) != len(tableau_copy.keys()):
         raise ValueError("Failed to fully rank parses for "+inp)
 
     # Since the function iterates over the constraints in ranked order,
     # the parses that violate higher constraints are appended earlier.
     # So, the optimal candidate is the last one in the list.
     
-    winner = ranked_inputs[-1]
+    winner = ranked_parses[-1]
     
     # Return the winner and its violation profile
     # Violation profile is necessary for error-driven learning
@@ -258,41 +258,41 @@ def generate(inp, ranked_consts):
 
 # Produce a winning parse given an overt form and constraint ranking
 # Very similar to generate, except that the candidates are not inputs but overts
-def rip(overt, ranked_constraints):
+def rip(overt, ranked_consts):
     tableau_copy = overt_tableaux[overt] # Copy tableau to not alter original
-    optimize_list = []
-    while len(optimize_list) < len(tableau_copy.keys()):
+    ranked_parses = []
+    while len(ranked_parses) < len(tableau_copy.keys()):
         # It's important to iterate over the constraints first!
-        for constraint in ranked_constraints:
+        for const in ranked_consts:
             for parse in tableau_copy.keys():
-                if tableau_copy[parse][constraint] == 1:
-                    if parse not in optimize_list:
-                        optimize_list.append(parse)
-    if len(optimize_list) != len(tableau_copy.keys()):
+                if tableau_copy[parse][const] == 1:
+                    if parse not in ranked_parses:
+                        ranked_parses.append(parse)
+    if len(ranked_parses) != len(tableau_copy.keys()):
         raise ValueError("Failed to fully rank parses for "+overt)
     
-    winner = optimize_list[-1]
+    winner = ranked_parses[-1]
     
     return (winner, overt_tableaux[overt][winner])
 
 # Compare generated output form from input with the observed overt form.
 # If different, there's an error, so learn by doing adjust_grammar.
-def learn(overt, constraint_dict, ranked_constraints):
-    optimization = optimize(get_input(overt), ranked_constraints)
-    rip_parse = rip(overt, ranked_constraints)
-    if optimization == rip_parse:
-        print("No error detected")
+def learn(overt, const_dict, ranked_consts):
+    generation = generate(get_input(overt), ranked_consts)
+    rip_parse = rip(overt, ranked_consts)
+    if generation == rip_parse:
+        #print("No error detected")
         pass
     else:
-        print("Error detected...adjusting grammar")
-        good_constraints = []
-        bad_constraints = []
-        for constraint in rip_parse[1].keys():
-            if rip_parse[1][constraint] == 1 and optimization[1][constraint] == 0:
-                bad_constraints.append(constraint)
-            elif rip_parse[1][constraint] == 0 and optimization[1][constraint] == 1:
-                good_constraints.append(constraint)
-        adjust_grammar(good_constraints, bad_constraints, constraint_dict)
+        #print("Error detected...adjusting grammar")
+        good_consts = []
+        bad_consts = []
+        for const in rip_parse[1].keys():
+            if rip_parse[1][const] > generation[1][const]:
+                bad_consts.append(const)
+            elif rip_parse[1][const] < generation[1][const]:
+                good_consts.append(const)
+        adjust_grammar(good_consts, bad_consts, const_dict)
 
 
 ##### Part 3: Learning #########################################################
@@ -314,7 +314,4 @@ constraint_dict={}
 for c in consts:
     constraint_dict[c] = 100.0
 
-ranked_constraints = initialize_grammar(constraint_dict)
-
-
-results_file.close() 
+results.file.close()
