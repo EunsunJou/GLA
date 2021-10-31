@@ -194,8 +194,6 @@ for t in tableaux_string:
 
 ##### Part 2: Defining utility functions #######################################
 
-print(input_tableaux["|L L|"])
-
 # Extract input from overt form
 def get_input(overt_string):
     core_pattern = re.compile(r"\[(.*)\]")
