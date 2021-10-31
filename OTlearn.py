@@ -146,8 +146,10 @@ for t in tableaux_string:
         parse_evals = {}
 
         for cand in candidates:
-            cand_overt, parse, viols_string = cand
-
+            cand[0] = cand_overt
+            cand[1] = parse
+            cand[2] = viols_string
+            
             # Pick out the cand tuples affiliated with the overt form.
             if cand_overt == overt:
                 # convert violation profile from string (e.g., '0 1 0') 
