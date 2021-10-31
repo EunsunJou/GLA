@@ -275,7 +275,8 @@ def rip(overt, ranked_constraints):
     
     return (winner, overt_tableaux[overt][winner])
 
-
+# Compare generated output form from input with the observed overt form.
+# If different, there's an error, so learn by doing adjust_grammar.
 def learn(overt, constraint_dict, ranked_constraints):
     optimization = optimize(get_input(overt), ranked_constraints)
     rip_parse = rip(overt, ranked_constraints)
