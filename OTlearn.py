@@ -353,5 +353,87 @@ constraint_dict={}
 for c in consts:
     constraint_dict[c] = 100.0
 
+starttime = datetime.datetime.now()
 
+# Learner will go through all words in target file, but in random order.
 
+target_list_shuffled = random.sample(target_list, len(target_list))
+
+target_set = set(target_list_shuffled)
+
+learned_success_list = []
+
+j = 0
+change = 0
+# Actual learning loop
+for t in target_list_shuffled:
+    j += 1
+    i = 1
+
+    t = t.rstrip() # Target file has newline after each overt form.
+    
+    print("Learning "+t+": input "+str(j)+" out of "+str(len(target_list_shuffled)))
+    if j % 1000 == 0:
+        print("input "+str(j)+" out of "+str(len(target_list_shuffled))+" learned")
+
+    generation = generate(get_input(t), ranking(constraint_dict))
+    rip_parse = rip(t, ranking(constraint_dict))
+  
+    print(generation[0])
+    print(parse[0])
+
+    
+    while i < iter_limit+1:
+        if generation[0] == rip_parse[0]:
+            learned_success_list.append(t)
+            if i != 1:
+                print("Converged in "+str(i)+" trials.")
+            break
+        else:
+            i += 1
+            # new grammar
+            constraint_dict = learn(rip_parse[1], generation[1], constraint_dict)
+            # new generation with new grammar
+            generation = generate(get_input(t), ranking(constraint_dict))
+            # new rip parse with new grammar
+            rip_parse = rip(t, ranking(constraint_dict))
+            change += 1
+        
+        if i == iter_limit:
+            print("Failed to converge in this trial.")
+    
+
+results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
+results_file.write("Iteration limit: "+str(iter_limit)+"\n")
+results_file.write("Grammar changed "+str(change)+"/"+str(len(target_list_shuffled)*iter_limit)+" times\n")
+
+learned_success_set = set(learned_success_list)
+failure_set = target_set.difference(learned_success_set)
+
+results_file.write("Overt forms that were learned:\n")
+
+for x in learned_success_set:
+    results_file.write(x.rstrip()+"\n")
+
+results_file.write("Overt forms that were never learned:\n")
+
+for x in failure_set:
+    results_file.write(x.rstrip()+"\n")
+
+results_file.write("Learned grammar:\n")
+
+ranked_constraints_post = ranking(constraint_dict)
+
+for const in ranked_constraints_post:
+    results_file.write(const+"\t"+str(constraint_dict[const])+"\n")
+
+endtime = datetime.datetime.now()
+
+duration = endtime-starttime
+
+results_file.write("Time taken: "+str(duration))
+
+print("Time taken: "+str(duration))
+print("Output file: "+result_file_name[1:])
+
+results_file.close()
