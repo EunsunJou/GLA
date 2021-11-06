@@ -310,6 +310,18 @@ def learn(overt, const_dict, limit):
         learn(overt, const_dict)
 '''
 
+def learn(rip_viol_profile, generate_viol_profile, const_dict):
+    good_consts = []
+    bad_consts = []
+    for const in rip_viol_profile.keys():
+        if rip_viol_profile[const] > generate_viol_profile[const]:
+            bad_consts.append(const)
+        elif rip_viol_profile[const] < generate_viol_profile[const]:
+            good_consts.append(const)
+        # Adjust the grammar according to the contraint classifications
+    return(adjust_grammar(good_consts, bad_consts, const_dict))
+
+
 ##### Part 3: Learning #########################################################
 
 # Timestamp for file
