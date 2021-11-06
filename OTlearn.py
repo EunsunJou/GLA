@@ -334,6 +334,13 @@ ss = str(datetime.datetime.now())[17:19]
 
 timestamp = yy+mm+dd+"_"+hh+mn+ss
 
+script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
+results_path = script_path + '\\results'
+result_file_name = "\\"+lang+"_"+str(syll_num)+"syll_"+str(iter_limit)+"iter_"+timestamp+".txt"
+result_file_path = results_path + result_file_name
+
+results_file = open(result_file_path, 'w')
+
 # Put all constraints at 100 ranking value
 constraint_dict={}
 
