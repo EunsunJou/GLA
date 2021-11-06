@@ -25,7 +25,6 @@ import random
 import sys
 import datetime
 
-
 ##### Part 0: Open and save grammar and target files ############################
 
 # The command asks for two .txt file names as parameters: the grammar file and the target file.
@@ -44,6 +43,7 @@ grammar_text = grammar_file.read()
 # via a separate python script ("generate_learning_data.py")
 target_file = open(sys.argv[2], 'r')
 target_list = target_file.readlines()
+target_list = [x.rstrip() for x in target_list]
 
 # Close files
 grammar_file.close()
@@ -215,10 +215,10 @@ def initialize_grammar(const_dict):
 # Adjusting the grammar in the face of an error
 def adjust_grammar(good_consts, bad_consts, const_dict):
     for const in good_consts:
-        noise = random.uniform(0, 2.0)
+        noise = random.uniform(-2.0, 2.0)
         const_dict[const] = const_dict[const] + noise
     for const in bad_consts:
-        noise = random.uniform(-2.0, 0)
+        noise = random.uniform(-2.0, 2.0)
         const_dict[const] = const_dict[const] + noise
     return const_dict
 
@@ -277,14 +277,17 @@ def rip(overt, ranked_consts):
 
 # Compare generated output form from input with the observed overt form.
 # If different, there's an error, so learn by doing adjust_grammar.
-def learn(overt, const_dict, ranked_consts):
-    generation = generate(get_input(overt), ranked_consts)
-    rip_parse = rip(overt, ranked_consts)
+
+
+
+'''
+def learn(overt, const_dict, limit):
+    i = 1
+    generation = generate(get_input(overt), ranking(const_dict))
+    rip_parse = rip(overt, ranking(const_dict))
     if generation == rip_parse:
-        #print("No error detected")
-        pass
+        return # If no error detected, move on to next overt form in target_list
     else:
-        #print("Error detected...adjusting grammar")
         good_consts = []
         bad_consts = []
         for const in rip_parse[1].keys():
@@ -292,8 +295,15 @@ def learn(overt, const_dict, ranked_consts):
                 bad_consts.append(const)
             elif rip_parse[1][const] < generation[1][const]:
                 good_consts.append(const)
-        adjust_grammar(good_consts, bad_consts, const_dict)
-
+        # Adjust the grammar according to the contraint classifications
+        const_dict = adjust_grammar(good_consts, bad_consts, const_dict)
+        
+        i += 1
+        
+        while (i)
+        # Learn again with newly adjusted grammar
+        learn(overt, const_dict)
+'''
 
 ##### Part 3: Learning #########################################################
 
@@ -307,11 +317,17 @@ ss = str(datetime.datetime.now())[17:19]
 
 timestamp = yy+mm+dd+"_"+hh+mn+ss
 
-results_file = open('RIPGLA_result'+timestamp+'.txt', 'w')
-
+# Put all constraints at 100 ranking value
 constraint_dict={}
 
 for c in consts:
     constraint_dict[c] = 100.0
 
-results.file.close()
+# Put all constraints at 100 ranking value
+constraint_dict={}
+
+for c in consts:
+    constraint_dict[c] = 100.0
+
+
+
