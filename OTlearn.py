@@ -26,6 +26,10 @@ import sys
 import datetime
 import os
 
+lang = input("Language name: ")
+iter_limit = int(input("Maximum iterations per overt form: "))
+syll_num = sys.argv[2][-9]
+
 ##### Part 0: Open and save grammar and target files ############################
 
 # The command asks for two .txt file names as parameters: the grammar file and the target file.
