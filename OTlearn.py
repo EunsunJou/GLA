@@ -24,6 +24,7 @@ import re
 import random
 import sys
 import datetime
+import os
 
 ##### Part 0: Open and save grammar and target files ############################
 
