@@ -213,18 +213,18 @@ def get_input(overt_string):
 # Add random noise within the range of the learning rate
 def initialize_grammar(const_dict):
     for const in const_dict:
-        noise = random.uniform(-2.0, 2.0)
+        noise = random.gauss(0, 0.5)
         const_dict[const] = const_dict[const] + noise
     return const_dict
 
 # Adjusting the grammar in the face of an error
 def adjust_grammar(good_consts, bad_consts, const_dict):
     for const in good_consts:
-        noise = random.uniform(-2.0, 2.0)
-        const_dict[const] = const_dict[const] + noise
+        noise = random.gauss(0, 0.5)
+        const_dict[const] = const_dict[const] + abs(noise)
     for const in bad_consts:
-        noise = random.uniform(-2.0, 2.0)
-        const_dict[const] = const_dict[const] + noise
+        noise = random.gauss(0, 0.5)
+        const_dict[const] = const_dict[const] - abs(noise)
     return const_dict
 
 # Rank constraints in const_dict by their rank value in return an (ordered) list
