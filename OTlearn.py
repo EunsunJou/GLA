@@ -27,7 +27,6 @@ import datetime
 import os
 
 lang = input("Language name: ")
-iter_limit = int(input("Maximum iterations per overt form: "))
 syll_num = sys.argv[2][-9]
 
 ##### Part 0: Open and save grammar and target files ############################
@@ -305,7 +304,7 @@ timestamp = yy+mm+dd+"_"+hh+mn+ss
 
 script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
 results_path = script_path + '\\results'
-result_file_name = "\\"+lang+"_"+str(syll_num)+"syll_"+str(iter_limit)+"iter_"+timestamp+".txt"
+result_file_name = "\\"+lang+"_"+str(syll_num)+"syll_"+timestamp+".txt"
 result_file_path = results_path + result_file_name
 
 results_file = open(result_file_path, 'w')
@@ -353,8 +352,7 @@ for t in target_list_shuffled:
     
 
 results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
-results_file.write("Iteration limit: "+str(iter_limit)+"\n")
-results_file.write("Grammar changed "+str(change)+"/"+str(len(target_list_shuffled)*iter_limit)+" times\n")
+results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_list_shuffled))+" times\n")
 
 learned_success_set = set(learned_success_list)
 failure_set = target_set.difference(learned_success_set)
