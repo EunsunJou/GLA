@@ -359,12 +359,12 @@ failure_set = target_set.difference(learned_success_set)
 
 #results_file.write("Overt forms that were learned:\n")
 
-#for x in learned_success_set:
+#for x in sorted(learned_success_set):
 #    results_file.write(x.rstrip()+"\n")
 
 results_file.write("Overt forms that were never learned:\n")
 
-for x in failure_set:
+for x in sorted(failure_set):
     results_file.write(x.rstrip()+"\n")
 
 results_file.write("Learned grammar:\n")
