@@ -347,12 +347,6 @@ constraint_dict={}
 for c in consts:
     constraint_dict[c] = 100.0
 
-# Put all constraints at 100 ranking value
-constraint_dict={}
-
-for c in consts:
-    constraint_dict[c] = 100.0
-
 starttime = datetime.datetime.now()
 
 # Learner will go through all words in target file, but in random order.
