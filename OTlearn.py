@@ -357,10 +357,10 @@ results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_lis
 learned_success_set = set(learned_success_list)
 failure_set = target_set.difference(learned_success_set)
 
-results_file.write("Overt forms that were learned:\n")
+#results_file.write("Overt forms that were learned:\n")
 
-for x in learned_success_set:
-    results_file.write(x.rstrip()+"\n")
+#for x in learned_success_set:
+#    results_file.write(x.rstrip()+"\n")
 
 results_file.write("Overt forms that were never learned:\n")
 
