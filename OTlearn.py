@@ -211,7 +211,7 @@ def get_input(overt_string):
     return inp
 
 # Add random noise within the range of the learning rate
-def initialize_grammar(const_dict):
+def add_noise(const_dict):
     for const in const_dict:
         noise = random.gauss(0, 0.5)
         const_dict[const] = const_dict[const] + noise
@@ -366,17 +366,14 @@ for t in target_list_shuffled:
 
     t = t.rstrip() # Target file has newline after each overt form.
     
-    print("Learning "+t+": input "+str(j)+" out of "+str(len(target_list_shuffled)))
     if j % 1000 == 0:
         print("input "+str(j)+" out of "+str(len(target_list_shuffled))+" learned")
 
     generation = generate(get_input(t), ranking(constraint_dict))
     rip_parse = rip(t, ranking(constraint_dict))
-  
-    print(generation[0])
-    print(parse[0])
 
-    
+    constraint_dict = add_noise(constraint_dict)
+
     while i < iter_limit+1:
         if generation[0] == rip_parse[0]:
             learned_success_list.append(t)
