@@ -331,9 +331,6 @@ change = 0
 # Actual learning loop
 for t in target_list_shuffled:
     j += 1
-    i = 1
-
-    t = t.rstrip() # Target file has newline after each overt form.
     
     if j % 1000 == 0:
         print("input "+str(j)+" out of "+str(len(target_list_shuffled))+" learned")
@@ -343,24 +340,16 @@ for t in target_list_shuffled:
 
     constraint_dict = add_noise(constraint_dict)
 
-    while i < iter_limit+1:
-        if generation[0] == rip_parse[0]:
-            learned_success_list.append(t)
-            if i != 1:
-                print("Converged in "+str(i)+" trials.")
-            break
-        else:
-            i += 1
-            # new grammar
-            constraint_dict = learn(rip_parse[1], generation[1], constraint_dict)
-            # new generation with new grammar
-            generation = generate(get_input(t), ranking(constraint_dict))
-            # new rip parse with new grammar
-            rip_parse = rip(t, ranking(constraint_dict))
-            change += 1
-        
-        if i == iter_limit:
-            print("Failed to converge in this trial.")
+    if generation[0] == rip_parse[0]:
+        learned_success_list.append(t)
+    else:
+        # new grammar
+        constraint_dict = learn(rip_parse[1], generation[1], constraint_dict)
+        # new generation with new grammar
+        generation = generate(get_input(t), ranking(constraint_dict))
+        # new rip parse with new grammar
+        rip_parse = rip(t, ranking(constraint_dict))
+        change += 1
     
 
 results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
