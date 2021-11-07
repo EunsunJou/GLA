@@ -219,9 +219,9 @@ def add_noise(const_dict):
 # Adjusting the grammar in the face of an error
 def adjust_grammar(good_consts, bad_consts, const_dict):
     for const in good_consts:
-        const_dict[const] = const_dict[const] + 0.1
+        const_dict[const] = const_dict[const] + 0.01
     for const in bad_consts:
-        const_dict[const] = const_dict[const] - 0.1
+        const_dict[const] = const_dict[const] - 0.01
     return const_dict
 
 # Rank constraints in const_dict by their rank value in return an (ordered) list
