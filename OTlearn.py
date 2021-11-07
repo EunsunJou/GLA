@@ -326,14 +326,14 @@ target_set = set(target_list_shuffled)
 
 learned_success_list = []
 
-j = 0
-change = 0
+datum_counter = 0
+change_counter = 0
 # Actual learning loop
 for t in target_list_shuffled:
-    j += 1
+    datum_counter += 1
     
-    if j % 1000 == 0:
-        print("input "+str(j)+" out of "+str(len(target_list_shuffled))+" learned")
+    if datum_counter % 1000 == 0:
+        print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
 
     generation = generate(get_input(t), ranking(constraint_dict))
     rip_parse = rip(t, ranking(constraint_dict))
@@ -349,7 +349,7 @@ for t in target_list_shuffled:
         generation = generate(get_input(t), ranking(constraint_dict))
         # new rip parse with new grammar
         rip_parse = rip(t, ranking(constraint_dict))
-        change += 1
+        change_counter += 1
     
 
 results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
