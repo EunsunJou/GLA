@@ -220,11 +220,9 @@ def add_noise(const_dict):
 # Adjusting the grammar in the face of an error
 def adjust_grammar(good_consts, bad_consts, const_dict):
     for const in good_consts:
-        noise = random.gauss(0, 0.5)
-        const_dict[const] = const_dict[const] + abs(noise)
+        const_dict[const] = const_dict[const] + 0.1
     for const in bad_consts:
-        noise = random.gauss(0, 0.5)
-        const_dict[const] = const_dict[const] - abs(noise)
+        const_dict[const] = const_dict[const] - 0.1
     return const_dict
 
 # Rank constraints in const_dict by their rank value in return an (ordered) list
@@ -280,35 +278,6 @@ def rip(overt, ranked_consts):
     
     return (winner, overt_tableaux[overt][winner])
 
-# Compare generated output form from input with the observed overt form.
-# If different, there's an error, so learn by doing adjust_grammar.
-
-
-
-'''
-def learn(overt, const_dict, limit):
-    i = 1
-    generation = generate(get_input(overt), ranking(const_dict))
-    rip_parse = rip(overt, ranking(const_dict))
-    if generation == rip_parse:
-        return # If no error detected, move on to next overt form in target_list
-    else:
-        good_consts = []
-        bad_consts = []
-        for const in rip_parse[1].keys():
-            if rip_parse[1][const] > generation[1][const]:
-                bad_consts.append(const)
-            elif rip_parse[1][const] < generation[1][const]:
-                good_consts.append(const)
-        # Adjust the grammar according to the contraint classifications
-        const_dict = adjust_grammar(good_consts, bad_consts, const_dict)
-        
-        i += 1
-        
-        while (i)
-        # Learn again with newly adjusted grammar
-        learn(overt, const_dict)
-'''
 
 def learn(rip_viol_profile, generate_viol_profile, const_dict):
     good_consts = []
