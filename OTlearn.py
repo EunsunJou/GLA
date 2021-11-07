@@ -245,7 +245,7 @@ def generate(inp, ranked_consts):
         # It's important to iterate over the constraints first!
         for const in ranked_consts:
             for parse in tableau_copy.keys():
-                if tableau_copy[parse][const] == 1:
+                if tableau_copy[parse][const] > 0:
                     if parse not in ranked_parses:
                         ranked_parses.append(parse)
     if len(ranked_parses) != len(tableau_copy.keys()):
@@ -270,7 +270,7 @@ def rip(overt, ranked_consts):
         # It's important to iterate over the constraints first!
         for const in ranked_consts:
             for parse in tableau_copy.keys():
-                if tableau_copy[parse][const] == 1:
+                if tableau_copy[parse][const] > 0:
                     if parse not in ranked_parses:
                         ranked_parses.append(parse)
     if len(ranked_parses) != len(tableau_copy.keys()):
