@@ -1,3 +1,4 @@
+
 ##### Python implementation of Stochastic OT
 ##### Inspired by Harmonic Grammar implementation by Connor McLaughlin:
 ##### https://github.com/connormcl/harmonic-grammar
@@ -26,7 +27,7 @@ import sys
 import datetime
 import os
 
-lang = input("Language name: ")
+lang = sys.argv[2][:6]
 syll_num = sys.argv[2][-9]
 
 ##### Part 0: Open and save grammar and target files ############################
