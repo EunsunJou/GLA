@@ -26,6 +26,7 @@ import random
 import sys
 import datetime
 import os
+import matplotlib.pyplot as plt
 
 lang = sys.argv[2][:6]
 syll_num = sys.argv[2][-9]
@@ -290,6 +291,8 @@ def learn(rip_viol_profile, generate_viol_profile, const_dict):
         # Adjust the grammar according to the contraint classifications
     return(adjust_grammar(good_consts, bad_consts, const_dict))
 
+def plot(const_dict, const_trends, timepoints):
+    pass
 
 ##### Part 3: Learning #########################################################
 
@@ -326,14 +329,17 @@ target_set = set(target_list_shuffled)
 
 learned_success_list = []
 
+trend_tracks = {}
+for const in constraint_dict.keys():
+    trend_tracks[const] = []
+
+trial_tracks = []
+
 datum_counter = 0
 change_counter = 0
 # Actual learning loop
 for t in target_list_shuffled:
     datum_counter += 1
-    
-    if datum_counter % 1000 == 0:
-        print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
 
     generation = generate(get_input(t), ranking(constraint_dict))
     rip_parse = rip(t, ranking(constraint_dict))
@@ -351,7 +357,22 @@ for t in target_list_shuffled:
         rip_parse = rip(t, ranking(constraint_dict))
         change_counter += 1
     
+    if datum_counter % 10 == 0:
+        trial_tracks.append(datum_counter)
 
+        for const in constraint_dict.keys():
+            trend_tracks[const].append(constraint_dict[const])
+        
+        if datum_counter % 1000 == 0:
+            print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+        
+
+for const in trend_tracks.keys():
+    plt.plot(trial_tracks, trend_tracks[const])
+
+plt.show()
+
+'''
 results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
 results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_list_shuffled))+" times\n")
 
@@ -383,5 +404,5 @@ results_file.write("Time taken: "+str(duration))
 
 print("Time taken: "+str(duration))
 print("Output file: "+result_file_name[1:])
-
+'''
 results_file.close()
