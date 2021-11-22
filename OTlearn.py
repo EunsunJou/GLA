@@ -27,6 +27,7 @@ import sys
 import datetime
 import os
 import matplotlib.pyplot as plt
+import time
 
 lang = sys.argv[2][:6]
 syll_num = sys.argv[2][-9]
@@ -239,43 +240,48 @@ def ranking(const_dict):
 # (Basically a run-of-the-mill OT tableau)
 def generate(inp, ranked_consts):
     tableau_copy = input_tableaux[inp] # Copy tableau to not alter original
-    ranked_parses = []
-    while len(ranked_parses) < len(tableau_copy.keys()):
-        # It's important to iterate over the constraints first!
-        for const in ranked_consts:
-            for parse in tableau_copy.keys():
-                if tableau_copy[parse][const] > 0:
-                    if parse not in ranked_parses:
-                        ranked_parses.append(parse)
-    if len(ranked_parses) != len(tableau_copy.keys()):
-        raise ValueError("Failed to fully rank parses for "+inp)
+    parses = list(tableau_copy.keys())
+    # It's important to iterate over the constraints first!
+    for const in ranked_consts:
+        num = len(parses)
+        for parse in parses:
+            violators=[]
+            if tableau_copy[parse][const] > 0:
+                violators.append(parse)
+                if len(violators) < num:
+                    parses.remove(parse)
+                    break
+    if len(parses) != 1:
+        raise ValueError("I have "+str(len(parses))+". Failed to fully rank parses for "+inp)
 
     # Since the function iterates over the constraints in ranked order,
-    # the parses that violate higher constraints are appended earlier.
-    # So, the optimal candidate is the last one in the list.
-    
-    winner = ranked_parses[-1]
+    # the parses that violate higher constraints are removed first.
+    # So, the optimal candidate is the only remaining one in the list.
+    winner = parses[0]
     
     # Return the winner and its violation profile
     # Violation profile is necessary for error-driven learning
     return (winner, input_tableaux[inp][winner])
 
+
 # Produce a winning parse given an overt form and constraint ranking
 # Very similar to generate, except that the candidates are not inputs but overts
 def rip(overt, ranked_consts):
     tableau_copy = overt_tableaux[overt] # Copy tableau to not alter original
-    ranked_parses = []
-    while len(ranked_parses) < len(tableau_copy.keys()):
-        # It's important to iterate over the constraints first!
-        for const in ranked_consts:
-            for parse in tableau_copy.keys():
-                if tableau_copy[parse][const] > 0:
-                    if parse not in ranked_parses:
-                        ranked_parses.append(parse)
-    if len(ranked_parses) != len(tableau_copy.keys()):
-        raise ValueError("Failed to fully rank parses for "+overt)
+    parses = list(tableau_copy.keys())
+    # It's important to iterate over the constraints first!
+    for const in ranked_consts:
+        num = len(parses)
+        for parse in parses:
+            violators=[]
+            if tableau_copy[parse][const] > 0:
+                violators.append(parse)
+                if len(violators) < num:
+                    parses.remove(parse)
+    if len(parses) != 1:
+        raise ValueError("I have "+str(len(parses))+". Failed to fully rank parses for "+inp)
     
-    winner = ranked_parses[-1]
+    winner = parses[0]
     
     return (winner, overt_tableaux[overt][winner])
 
@@ -288,11 +294,10 @@ def learn(rip_viol_profile, generate_viol_profile, const_dict):
             bad_consts.append(const)
         elif rip_viol_profile[const] < generate_viol_profile[const]:
             good_consts.append(const)
-        # Adjust the grammar according to the contraint classifications
-    return(adjust_grammar(good_consts, bad_consts, const_dict))
-
-def plot(const_dict, const_trends, timepoints):
-    pass
+        else:
+            continue
+    # Adjust the grammar according to the contraint classifications
+    return adjust_grammar(good_consts, bad_consts, const_dict)
 
 ##### Part 3: Learning #########################################################
 
@@ -310,33 +315,38 @@ script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir t
 results_path = script_path + '\\results'
 result_file_name = "\\"+lang+"_"+str(syll_num)+"syll_"+timestamp+".txt"
 result_file_path = results_path + result_file_name
-
 results_file = open(result_file_path, 'w')
-
-# Put all constraints at 100 ranking value
-constraint_dict={}
-
-for c in consts:
-    constraint_dict[c] = 100.0
 
 starttime = datetime.datetime.now()
 
+# Put all constraints at 100 ranking value
+constraint_dict={}
+for c in consts:
+    constraint_dict[c] = 100.0
+
 # Learner will go through all words in target file, but in random order.
-
 target_list_shuffled = random.sample(target_list, len(target_list))
-
 target_set = set(target_list_shuffled)
 
-learned_success_list = []
+# list of items learned successfully
+learned_success_list = [] 
 
+# list of ranking values per constraint
 trend_tracks = {}
 for const in constraint_dict.keys():
-    trend_tracks[const] = []
+    trend_tracks[const] = [] 
 
-trial_tracks = []
+# track the iteration number where change occurred
+# (will plot the interval between changes)
+interval_track = [] 
+# track number of learned tokens
+learning_track = []
+# track number of iterations for plotting
+iteration_track = []
 
 datum_counter = 0
 change_counter = 0
+
 # Actual learning loop
 for t in target_list_shuffled:
     datum_counter += 1
@@ -344,10 +354,16 @@ for t in target_list_shuffled:
     generation = generate(get_input(t), ranking(constraint_dict))
     rip_parse = rip(t, ranking(constraint_dict))
 
-    constraint_dict = add_noise(constraint_dict)
+    old_constraint_dict = constraint_dict
+
+    #constraint_dict = add_noise(constraint_dict)
 
     if generation[0] == rip_parse[0]:
         learned_success_list.append(t)
+
+        for const in constraint_dict.keys():
+            trend_tracks[const].append(constraint_dict[const])    
+
     else:
         # new grammar
         constraint_dict = learn(rip_parse[1], generation[1], constraint_dict)
@@ -356,28 +372,23 @@ for t in target_list_shuffled:
         # new rip parse with new grammar
         rip_parse = rip(t, ranking(constraint_dict))
         change_counter += 1
-    
-    if datum_counter % 10 == 0:
-        trial_tracks.append(datum_counter)
+
+        interval_track.append(datum_counter)
 
         for const in constraint_dict.keys():
             trend_tracks[const].append(constraint_dict[const])
-        
-        if datum_counter % 1000 == 0:
-            print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
-        
+    
+    iteration_track.append(datum_counter)
+    learning_track.append(len(set(learned_success_list)))
 
-for const in trend_tracks.keys():
-    plt.plot(trial_tracks, trend_tracks[const])
+    if datum_counter % 1000 == 0:
+        print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
 
-plt.show()
+#print("First complete learn: "+str(first_complete_learn[0]))
 
-'''
+
 results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
 results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_list_shuffled))+" times\n")
-
-learned_success_set = set(learned_success_list)
-failure_set = target_set.difference(learned_success_set)
 
 #results_file.write("Overt forms that were learned:\n")
 
@@ -385,6 +396,9 @@ failure_set = target_set.difference(learned_success_set)
 #    results_file.write(x.rstrip()+"\n")
 
 results_file.write("Overt forms that were never learned:\n")
+
+learned_success_set = set(learned_success_list)
+failure_set = target_set.difference(learned_success_set)
 
 for x in sorted(failure_set):
     results_file.write(x.rstrip()+"\n")
@@ -404,5 +418,33 @@ results_file.write("Time taken: "+str(duration))
 
 print("Time taken: "+str(duration))
 print("Output file: "+result_file_name[1:])
-'''
+
 results_file.close()
+
+### Plotting
+intervals = []
+changes = []
+for i in range(0, len(interval_track)-1):
+    intervals.append(interval_track[i+1]-interval_track[i])
+    changes.append(i+1)
+
+plt.subplot(3, 1, 1)  
+for const in constraint_dict.keys():
+    plt.plot(iteration_track, trend_tracks[const])
+
+plt.subplot(3, 1, 2)
+plt.plot(iteration_track, learning_track)
+# y-axis for learning track should be 1, 2, ..., num_of_datum_tokens
+yticks_learning = list(range(len(target_set)+1))
+plt.yticks(yticks_learning)
+
+plt.subplot(3, 1, 3)
+plt.plot(changes, intervals)
+plt.ymax(max(intervals)+1)
+#yticks_intervals = list(range(max(intervals)+1))
+#plt.yticks(yticks_intervals)
+
+fig_path = result_file_path[:-4]+".pdf"
+plt.savefig(fig_path)
+plt.show()
+
