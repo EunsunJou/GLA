@@ -236,52 +236,48 @@ def ranking(const_dict):
     ranked_list = [x[0] for x in ranked_list_raw]
     return ranked_list
 
+
 # Produce a winning parse given an input and constraint ranking
 # (Basically a run-of-the-mill OT tableau)
 def generate(inp, ranked_consts):
     tableau_copy = input_tableaux[inp] # Copy tableau to not alter original
-    parses = list(tableau_copy.keys())
-    # It's important to iterate over the constraints first!
-    for const in ranked_consts:
-        num = len(parses)
-        for parse in parses:
-            violators=[]
-            if tableau_copy[parse][const] > 0:
-                violators.append(parse)
-                if len(violators) < num:
-                    parses.remove(parse)
-                    break
-    if len(parses) != 1:
-        raise ValueError("I have "+str(len(parses))+". Failed to fully rank parses for "+inp)
+    ranked_parses = []
+    while len(ranked_parses) < len(tableau_copy.keys()):
+        # It's important to iterate over the constraints first!
+        for const in ranked_consts:
+            for parse in tableau_copy.keys():
+                if tableau_copy[parse][const] > 0:
+                    if parse not in ranked_parses:
+                        ranked_parses.append(parse)
+    if len(ranked_parses) != len(tableau_copy.keys()):
+        raise ValueError("Failed to fully rank parses for "+inp)
 
     # Since the function iterates over the constraints in ranked order,
-    # the parses that violate higher constraints are removed first.
-    # So, the optimal candidate is the only remaining one in the list.
-    winner = parses[0]
+    # the parses that violate higher constraints are appended earlier.
+    # So, the optimal candidate is the last one in the list.
+    
+    winner = ranked_parses[-1]
     
     # Return the winner and its violation profile
     # Violation profile is necessary for error-driven learning
     return (winner, input_tableaux[inp][winner])
 
-
 # Produce a winning parse given an overt form and constraint ranking
 # Very similar to generate, except that the candidates are not inputs but overts
 def rip(overt, ranked_consts):
     tableau_copy = overt_tableaux[overt] # Copy tableau to not alter original
-    parses = list(tableau_copy.keys())
-    # It's important to iterate over the constraints first!
-    for const in ranked_consts:
-        num = len(parses)
-        for parse in parses:
-            violators=[]
-            if tableau_copy[parse][const] > 0:
-                violators.append(parse)
-                if len(violators) < num:
-                    parses.remove(parse)
-    if len(parses) != 1:
-        raise ValueError("I have "+str(len(parses))+". Failed to fully rank parses for "+inp)
+    ranked_parses = []
+    while len(ranked_parses) < len(tableau_copy.keys()):
+        # It's important to iterate over the constraints first!
+        for const in ranked_consts:
+            for parse in tableau_copy.keys():
+                if tableau_copy[parse][const] > 0:
+                    if parse not in ranked_parses:
+                        ranked_parses.append(parse)
+    if len(ranked_parses) != len(tableau_copy.keys()):
+        raise ValueError("Failed to fully rank parses for "+overt)
     
-    winner = parses[0]
+    winner = ranked_parses[-1]
     
     return (winner, overt_tableaux[overt][winner])
 
