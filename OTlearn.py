@@ -307,6 +307,7 @@ ss = str(datetime.datetime.now())[17:19]
 
 timestamp = yy+mm+dd+"_"+hh+mn+ss
 
+# Designate absolute path of results file and open it
 script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
 results_path = script_path + '\\results'
 result_file_name = "\\"+lang+"_"+str(syll_num)+"syll_"+timestamp+".txt"
@@ -332,9 +333,10 @@ trend_tracks = {}
 for const in constraint_dict.keys():
     trend_tracks[const] = [] 
 
+### Define variables to track
 # track the iteration number where change occurred
 # (will plot the interval between changes)
-interval_track = [] 
+# interval_track = [] 
 # track number of learned tokens
 learning_track = []
 # track number of iterations for plotting
@@ -350,9 +352,7 @@ for t in target_list_shuffled:
     generation = generate(get_input(t), ranking(constraint_dict))
     rip_parse = rip(t, ranking(constraint_dict))
 
-    old_constraint_dict = constraint_dict
-
-    #constraint_dict = add_noise(constraint_dict)
+    constraint_dict = add_noise(constraint_dict)
 
     if generation[0] == rip_parse[0]:
         learned_success_list.append(t)
@@ -380,36 +380,24 @@ for t in target_list_shuffled:
     if datum_counter % 1000 == 0:
         print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
 
-#print("First complete learn: "+str(first_complete_learn[0]))
-
 
 results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
+
 results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_list_shuffled))+" times\n")
 
-#results_file.write("Overt forms that were learned:\n")
-
-#for x in sorted(learned_success_set):
-#    results_file.write(x.rstrip()+"\n")
-
 results_file.write("Overt forms that were never learned:\n")
-
 learned_success_set = set(learned_success_list)
 failure_set = target_set.difference(learned_success_set)
-
 for x in sorted(failure_set):
     results_file.write(x.rstrip()+"\n")
 
 results_file.write("Learned grammar:\n")
-
 ranked_constraints_post = ranking(constraint_dict)
-
 for const in ranked_constraints_post:
     results_file.write(const+"\t"+str(constraint_dict[const])+"\n")
 
 endtime = datetime.datetime.now()
-
 duration = endtime-starttime
-
 results_file.write("Time taken: "+str(duration))
 
 print("Time taken: "+str(duration))
@@ -418,11 +406,13 @@ print("Output file: "+result_file_name[1:])
 results_file.close()
 
 ### Plotting
+'''
 intervals = []
 changes = []
 for i in range(0, len(interval_track)-1):
     intervals.append(interval_track[i+1]-interval_track[i])
     changes.append(i+1)
+'''
 
 plt.subplot(3, 1, 1)  
 for const in constraint_dict.keys():
@@ -434,11 +424,13 @@ plt.plot(iteration_track, learning_track)
 yticks_learning = list(range(len(target_set)+1))
 plt.yticks(yticks_learning)
 
+'''
 plt.subplot(3, 1, 3)
 plt.plot(changes, intervals)
-plt.ymax(max(intervals)+1)
+plt.ylim(0, max(intervals)+1)
 #yticks_intervals = list(range(max(intervals)+1))
 #plt.yticks(yticks_intervals)
+'''
 
 fig_path = result_file_path[:-4]+".pdf"
 plt.savefig(fig_path)
