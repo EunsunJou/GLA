@@ -27,6 +27,7 @@ import sys
 import datetime
 import os
 import matplotlib.pyplot as plt
+from labellines import labelLine, labelLines
 import time
 
 lang = sys.argv[1][:6]
@@ -415,11 +416,13 @@ for i in range(0, len(interval_track)-1):
     changes.append(i+1)
 '''
 
-plt.subplot(3, 1, 1)  
+plt.subplot(2, 1, 1)  
 for const in constraint_dict.keys():
-    plt.plot(iteration_track, trend_tracks[const])
+    plt.plot(iteration_track, trend_tracks[const], label=str(const))
 
-plt.subplot(3, 1, 2)
+labelLines(plt.gca().get_lines(), align=False, fontsize=12)
+
+plt.subplot(2, 1, 2)
 plt.plot(iteration_track, learning_track)
 # y-axis for learning track should be 1, 2, ..., num_of_datum_tokens
 yticks_learning = list(range(len(target_set)+1))
