@@ -1,1 +1,4 @@
 *.txt
+*.bat
+
+results/
