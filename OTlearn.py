@@ -32,6 +32,7 @@ import time
 
 lang = sys.argv[1][:6]
 syll_num = sys.argv[1][-9]
+#noise = sys.argv[2]
 
 ##### Part 0: Open and save grammar and target files ############################
 
@@ -238,50 +239,73 @@ def ranking(const_dict):
     ranked_list = [x[0] for x in ranked_list_raw]
     return ranked_list
 
+def optimize(dict_of_lists):
+    initial_batch = []
+    for key, value in dict_of_lists.items():
+        initial_batch.append(value[0])
+    
+    rank_compare = []
+    lowest_rank = max(initial_batch, key = lambda x:x[1])
+    for parse in initial_batch:
+        if parse[1] == lowest_rank[1]:
+            rank_compare.append(parse)
+
+    if len(rank_compare) == 1:
+        return rank_compare[0]
+
+    elif len(rank_compare) > 1:
+        viol_compare = []
+        lowest_viol = min(rank_compare, key = lambda x:x[3])
+
+        for x in rank_compare:
+            if x[3] == lowest_viol[3]:
+                viol_compare.append(x)
+
+        if len(viol_compare) == 1:
+            return viol_compare[0]
+        elif len(viol_compare) > 1:
+            partial_dict_of_lists = {}
+            for x in viol_compare:
+                partial_dict_of_lists[x[0]] = dict_of_lists[x[0]][1:]
+            return optimize(partial_dict_of_lists)
+        else:
+            raise ValueError("Could not find optimal candidate")
+    else:
+        raise ValueError("Could not find optimal candidate")
+
 
 # Produce a winning parse given an input and constraint ranking
 # (Basically a run-of-the-mill OT tableau)
 def generate(inp, ranked_consts):
-    tableau_copy = input_tableaux[inp] # Copy tableau to not alter original
-    ranked_parses = []
-    while len(ranked_parses) < len(tableau_copy.keys()):
-        # It's important to iterate over the constraints first!
-        for const in ranked_consts:
-            for parse in tableau_copy.keys():
-                if tableau_copy[parse][const] > 0:
-                    if parse not in ranked_parses:
-                        ranked_parses.append(parse)
-    if len(ranked_parses) != len(tableau_copy.keys()):
-        raise ValueError("Failed to fully rank parses for "+inp)
+    tableau_viol_only = {}
+    for parse in input_tableaux[inp].keys():
+        tableau_viol_only[parse] = []
+        for const, viol in input_tableaux[inp][parse].items():
+            if viol > 0:
+                tableau_viol_only[parse].append((parse, ranked_consts.index(const), const, viol))
+        tableau_viol_only[parse] = sorted(tableau_viol_only[parse], key = lambda x:x[1])
 
-    # Since the function iterates over the constraints in ranked order,
-    # the parses that violate higher constraints are appended earlier.
-    # So, the optimal candidate is the last one in the list.
+    gen_parse = optimize(tableau_viol_only)[0]
+    gen_viol_profile = input_tableaux[inp][gen_parse]
     
-    winner = ranked_parses[-1]
-    
-    # Return the winner and its violation profile
-    # Violation profile is necessary for error-driven learning
-    return (winner, input_tableaux[inp][winner])
+    return (gen_parse, gen_viol_profile)
+        
 
 # Produce a winning parse given an overt form and constraint ranking
 # Very similar to generate, except that the candidates are not inputs but overts
 def rip(overt, ranked_consts):
-    tableau_copy = overt_tableaux[overt] # Copy tableau to not alter original
-    ranked_parses = []
-    while len(ranked_parses) < len(tableau_copy.keys()):
-        # It's important to iterate over the constraints first!
-        for const in ranked_consts:
-            for parse in tableau_copy.keys():
-                if tableau_copy[parse][const] > 0:
-                    if parse not in ranked_parses:
-                        ranked_parses.append(parse)
-    if len(ranked_parses) != len(tableau_copy.keys()):
-        raise ValueError("Failed to fully rank parses for "+overt)
+    tableau_viol_only = {}
+    for parse in overt_tableaux[overt].keys():
+        tableau_viol_only[parse] = []
+        for const, viol in overt_tableaux[overt][parse].items():
+            if viol > 0:
+                tableau_viol_only[parse].append((parse, ranked_consts.index(const), const, viol))
+        tableau_viol_only[parse] = sorted(tableau_viol_only[parse], key = lambda x:x[1])
     
-    winner = ranked_parses[-1]
+    rip_parse = optimize(tableau_viol_only)[0]
+    rip_viol_profile = overt_tableaux[overt][rip_parse]
     
-    return (winner, overt_tableaux[overt][winner])
+    return (rip_parse, rip_viol_profile)
 
 
 def learn(rip_viol_profile, generate_viol_profile, const_dict):
@@ -419,12 +443,15 @@ for i in range(0, len(interval_track)-1):
 plt.subplot(2, 1, 1)  
 for const in constraint_dict.keys():
     plt.plot(iteration_track, trend_tracks[const], label=str(const))
+    #plt.xscale('log')
 
 labelLines(plt.gca().get_lines(), align=False, fontsize=12)
 
 plt.subplot(2, 1, 2)
 plt.plot(iteration_track, learning_track)
+plt.xscale('log')
 # y-axis for learning track should be 1, 2, ..., num_of_datum_tokens
+
 yticks_learning = list(range(len(target_set)+1))
 plt.yticks(yticks_learning)
 
@@ -438,5 +465,5 @@ plt.ylim(0, max(intervals)+1)
 
 fig_path = result_file_path[:-4]+".pdf"
 plt.savefig(fig_path)
-plt.show()
+#plt.show()
 
