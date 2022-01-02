@@ -241,7 +241,7 @@ def ranking(const_dict):
     return ranked_list
 
 # A recursive function that does run-of-the-mill OT
-# It takes as argument a sub-tableau with only actual violated constraints
+# It takes as argument a special dictionary, tableau_viol_only, which acts as a sub-tableau of sorts.
 def optimize(tableau_viol_only):
     # Pick out the most serious offense of each parse
     # (I.e., pick out the highest-ranked constraint violated by the parse)
