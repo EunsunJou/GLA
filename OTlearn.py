@@ -27,20 +27,26 @@ import sys
 import datetime
 import os
 import matplotlib.pyplot as plt
-from labellines import labelLine, labelLines
+#from labellines import labelLine, labelLines
 import time
+import math
 
 lang = sys.argv[1][:6]
 syll_num = sys.argv[1][-9]
-#noise = sys.argv[2]
 
 ##### Part 0: Open and save grammar and target files ############################
 
-# The command asks for two .txt file names as parameters: the grammar file and the target file.
-# I.e., the command looks like this: 'python OTlearn.py <Grammar File> <Target File>'.
+# The command asks for two parameters: the grammar file, and whether noise is on.
 # If user does not provide two parameters, throw an error.
-if len(sys.argv) != 2:
-    raise IndexError("Please provide a .txt files as the target file.")
+if len(sys.argv) != 3:
+    raise IndexError("Please provide all arguments required: a datum file, and whether noise is on (ON if on, OFF if off)")
+
+if sys.argv[2] == 'ON':
+    noise = True
+elif sys.argv[2] == 'OFF':
+    noise = False
+else:
+    raise ValueError("Please provide correct noise parameter: ON if on, OFF if off")
 
 # The Grammar file is a specific format of a txt file created by Praat
 # (It is called an "otgrammar" object in the Praat documentation.
@@ -93,7 +99,7 @@ def map_lists_to_dict(keylist, valuelist):
 # This function combines two lists into a list of tuples.
 # The first list provides the 0th element of the tuple, the second list the 1st.
 def map_lists_to_tuple_list(listone, listtwo):
-    if len(keylist) != len(valuelist):
+    if len(listone) != len(listtwo):
         raise ValueError("Length of lists do not match.")
     mapped_list = []
     for i in range(len(listone)):
@@ -109,16 +115,18 @@ Schematic structure of a tableau in Grammar File:
                    parse3: violation profile}
           overt2: {parse1: violation profile
                    parse2: violation profile}
+          ...
           }
  input2: {overt1: {parse1: violation profile
-                   parse2: violation profile
-                   parse3: violation profile}
-          overt2: {parse1: violation profile
                    parse2: violation profile}
+          overt2: {parse1: violation profile
+                   parse2: violation profile
+                   parse3: violation profile
+                   parse4: violation profile}
+          ...
           } 
  input3: ...
 }
-
 '''    
 
 ### There will be two separate dictionaries: 
@@ -128,7 +136,6 @@ Schematic structure of a tableau in Grammar File:
 ### First, compile regex patterns for picking up inputs, overt forms, parses, and violation profile
 # This picks out the input form ("|L H|")
 input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(\|.*\|)\"") 
-
 # This picks out the overt form ("[L1 L]"), parse ("/(L1) L/"), and violation profile ("0 1 0 ...")
 # (The order of constraints is constant for all parses)
 candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH\d ]+\]).*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
@@ -137,7 +144,7 @@ candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH\d ]+\]).*(/[LH\(
 # Build overt_tableaux first
 overt_tableaux = {}
 for t in tableaux_string:
-    # Since the parentheses in the overt_pattern regex capture these three string groups,
+    # Since the parentheses in the candidate_pattern regex capture these three string groups,
     # re.findall returns the list of (<overt form>, <parse>, <violation profile>) tuples.
     candidates = re.findall(candidate_pattern, t)
 
@@ -162,8 +169,8 @@ for t in tableaux_string:
 
             # Pick out the cand tuples affiliated with the overt form.
             if cand_overt == overt:
-                # convert violation profile from string (e.g., '0 1 0') 
-                # to list (e.g., ['0', '1', '0'])
+                # convert violation profile from string to list
+                # E.g., from '0 1 0' to ['0', '1', '0']
                 viols = viols_string.rstrip().split(' ')
                 # convert string (e.g., '0') to integer (e.g., 0)
                 viols = [int(x) for x in viols] 
@@ -181,8 +188,9 @@ input_tableaux = {}
 for t in tableaux_string:
     # Since there's only one input form per tableau,
     # re.findall should always yield a list of length 1
-    if len(re.findall(input_pattern, t)) > 1:
+    if len(re.findall(input_pattern, t)) != 1:
         raise ValueError("Found more than one input form in tableau. Please check grammar file.")
+
     inp = re.findall(input_pattern, t)[0]
 
     # Access the candidates again, to pick out parse and violation profile.
@@ -202,35 +210,28 @@ for t in tableaux_string:
         
     input_tableaux[inp] = parse_evals
 
+
 ##### Part 2: Defining utility functions #######################################
 
 # Extract input from overt form
 def get_input(overt_string):
     core_pattern = re.compile(r"\[(.*)\]")
     if not re.search(core_pattern, overt_string):
-        raise ValueError("Format of overt form "+overt_string+" is not appropriate. It looks like '[L1 H H]'.")
+        raise ValueError("Format of overt form "+overt_string+" is not appropriate. It should look like '[L1 H H]'.")
 
     core = re.search(core_pattern, overt_string).group(1)
     core = re.sub(r"\d", "", core)
     inp = "|"+core+"|"
     return inp
 
-# Add random noise within the range of the learning rate
+# Add random noise to ranking values of each constraint
 def add_noise(const_dict):
     for const in const_dict:
         noise = random.gauss(0, 0.5)
         const_dict[const] = const_dict[const] + noise
     return const_dict
 
-# Adjusting the grammar in the face of an error
-def adjust_grammar(good_consts, bad_consts, const_dict):
-    for const in good_consts:
-        const_dict[const] = const_dict[const] + 0.01
-    for const in bad_consts:
-        const_dict[const] = const_dict[const] - 0.01
-    return const_dict
-
-# Rank constraints in const_dict by their rank value in return an (ordered) list
+# Rank constraints in const_dict by their ranking value and return an ordered list
 def ranking(const_dict):
     ranked_list_raw=[]
     for const in const_dict:
@@ -239,44 +240,63 @@ def ranking(const_dict):
     ranked_list = [x[0] for x in ranked_list_raw]
     return ranked_list
 
-def optimize(dict_of_lists):
+# A recursive function that does run-of-the-mill OT
+# It takes as argument a sub-tableau with only actual violated constraints
+def optimize(tableau_viol_only):
+    # Pick out the most serious offense of each parse
+    # (I.e., pick out the highest-ranked constraint violated by the parse)
     initial_batch = []
-    for key, value in dict_of_lists.items():
+    for key, value in tableau_viol_only.items():
+        # The value is a list of (parse, const_rank, const, viol) tuples, sorted by const_rank.
+        # The first element of this list is the "most serious offense."
         initial_batch.append(value[0])
-    
-    rank_compare = []
+
+    # Among the most serious offense commited by each parse, 
+    # pick out the parse(s) that committed the least serious one.
+    lowest_rank_compare = []
+    # max, because the *largest* const_rank value means least serious
     lowest_rank = max(initial_batch, key = lambda x:x[1])
     for parse in initial_batch:
         if parse[1] == lowest_rank[1]:
-            rank_compare.append(parse)
+            lowest_rank_compare.append(parse)
 
-    if len(rank_compare) == 1:
-        return rank_compare[0]
+    # If there is a single parse with the least serious offense, that's the winner.
+    if len(lowest_rank_compare) == 1:
+        return lowest_rank_compare[0]
 
-    elif len(rank_compare) > 1:
+    # If there are more than one least-serious offenders...
+    elif len(lowest_rank_compare) > 1:
+        # ... we first see whether one has violated the same constraint more than the other(s).
         viol_compare = []
-        lowest_viol = min(rank_compare, key = lambda x:x[3])
-
-        for x in rank_compare:
+        lowest_viol = min(lowest_rank_compare, key = lambda x:x[3])
+        for x in lowest_rank_compare:
             if x[3] == lowest_viol[3]:
                 viol_compare.append(x)
 
+        # If there is one parse that violated the constraint the least, that's the winner.
         if len(viol_compare) == 1:
             return viol_compare[0]
+        
+        # If all of the least-serious offenders violated the constraint the same number of times,
+        # we now need to compare their next most serious constraint offended.
         elif len(viol_compare) > 1:
-            partial_dict_of_lists = {}
+            partial_tableau_viol_only = {}
             for x in viol_compare:
-                partial_dict_of_lists[x[0]] = dict_of_lists[x[0]][1:]
-            return optimize(partial_dict_of_lists)
+                # Make another tableau_viol_only with the least-serious offenders,
+                # but we chuck out their most serious offenses.
+                partial_tableau_viol_only[x[0]] = tableau_viol_only[x[0]][1:]
+            # Run the algorithm again with the new, partial tableau_viol_only
+            return optimize(partial_tableau_viol_only)
         else:
             raise ValueError("Could not find optimal candidate")
     else:
         raise ValueError("Could not find optimal candidate")
 
-
 # Produce a winning parse given an input and constraint ranking
 # (Basically a run-of-the-mill OT tableau)
 def generate(inp, ranked_consts):
+    # Pick out the constraints that *are* violated (i.e., violation > 0)
+    # This "sub-dictionary" will be fed into the optimize function
     tableau_viol_only = {}
     for parse in input_tableaux[inp].keys():
         tableau_viol_only[parse] = []
@@ -290,7 +310,6 @@ def generate(inp, ranked_consts):
     
     return (gen_parse, gen_viol_profile)
         
-
 # Produce a winning parse given an overt form and constraint ranking
 # Very similar to generate, except that the candidates are not inputs but overts
 def rip(overt, ranked_consts):
@@ -307,16 +326,24 @@ def rip(overt, ranked_consts):
     
     return (rip_parse, rip_viol_profile)
 
+# Adjusting the grammar, given the list of good and bad constraints
+def adjust_grammar(good_consts, bad_consts, const_dict):
+    for const in good_consts:
+        const_dict[const] = const_dict[const] + 0.01
+    for const in bad_consts:
+        const_dict[const] = const_dict[const] - 0.01
+    return const_dict
 
+# In the face of an error, classify constraints into good, bad, and irrelevant constraints.
 def learn(rip_viol_profile, generate_viol_profile, const_dict):
-    good_consts = []
-    bad_consts = []
+    good_consts = [] # Ones that are violated more by the "wrong" parse than by the actual datum
+    bad_consts = [] # Ones that are violated more by actual datum than by the "wrong" parse
     for const in rip_viol_profile.keys():
         if rip_viol_profile[const] > generate_viol_profile[const]:
             bad_consts.append(const)
         elif rip_viol_profile[const] < generate_viol_profile[const]:
             good_consts.append(const)
-        else:
+        else: # equal number of violations for the parse and the datum
             continue
     # Adjust the grammar according to the contraint classifications
     return adjust_grammar(good_consts, bad_consts, const_dict)
@@ -378,7 +405,8 @@ for t in target_list_shuffled:
     generation = generate(get_input(t), ranking(constraint_dict))
     rip_parse = rip(t, ranking(constraint_dict))
 
-    #constraint_dict = add_noise(constraint_dict)
+    if noise:
+        constraint_dict = add_noise(constraint_dict)
 
     if generation[0] == rip_parse[0]:
         learned_success_list.append(t)
@@ -401,7 +429,7 @@ for t in target_list_shuffled:
             trend_tracks[const].append(constraint_dict[const])
     
     iteration_track.append(datum_counter)
-    learning_track.append(len(set(learned_success_list)))
+    learning_track.append(len(learned_success_list))
 
     if datum_counter % 1000 == 0:
         print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
@@ -445,15 +473,33 @@ for const in constraint_dict.keys():
     plt.plot(iteration_track, trend_tracks[const], label=str(const))
     #plt.xscale('log')
 
-labelLines(plt.gca().get_lines(), align=False, fontsize=12)
+#labelLines(plt.gca().get_lines(), align=False, fontsize=12)
+
+i = 0
+yticks_learning = []
+while i < len(learned_success_list):
+    if math.floor(len(learned_success_list)*0.25) == float(i):
+        yticks_learning.append(i)
+    elif math.floor(len(learned_success_list)*0.5) == float(i):
+        yticks_learning.append(i)
+    elif math.floor(len(learned_success_list)*0.75) == float(i):
+        yticks_learning.append(i)
+    else:
+        pass
+
+    i += 1
+
+yticks_learning.append(len(learned_success_list))
 
 plt.subplot(2, 1, 2)
 plt.plot(iteration_track, learning_track)
-plt.xscale('log')
+#plt.xscale('log')
+plt.yticks(yticks_learning)
 # y-axis for learning track should be 1, 2, ..., num_of_datum_tokens
 
-yticks_learning = list(range(len(target_set)+1))
-plt.yticks(yticks_learning)
+
+
+
 
 '''
 plt.subplot(3, 1, 3)
