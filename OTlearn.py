@@ -246,7 +246,7 @@ def optimize(tableau_viol_only):
     # Pick out the most serious offense of each parse
     # (I.e., pick out the highest-ranked constraint violated by the parse)
     initial_batch = []
-    for key, value in tableau_viol_only.items():
+    for value in tableau_viol_only.values():
         # The value is a list of (parse, const_rank, const, viol) tuples, sorted by const_rank.
         # The first element of this list is the "most serious offense."
         initial_batch.append(value[0])
