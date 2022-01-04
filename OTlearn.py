@@ -329,9 +329,9 @@ def rip(overt, ranked_consts):
 # Adjusting the grammar, given the list of good and bad constraints
 def adjust_grammar(good_consts, bad_consts, const_dict):
     for const in good_consts:
-        const_dict[const] = const_dict[const] + 0.01
+        const_dict[const] = const_dict[const] + 0.1
     for const in bad_consts:
-        const_dict[const] = const_dict[const] - 0.01
+        const_dict[const] = const_dict[const] - 0.1
     return const_dict
 
 # In the face of an error, classify constraints into good, bad, and irrelevant constraints.
@@ -399,20 +399,23 @@ datum_counter = 0
 change_counter = 0
 
 # Actual learning loop
+
 for t in target_list_shuffled:
     datum_counter += 1
 
-    generation = generate(get_input(t), ranking(constraint_dict))
-    rip_parse = rip(t, ranking(constraint_dict))
-
     if noise:
-        constraint_dict = add_noise(constraint_dict)
+        constraint_dict_noise = add_noise(constraint_dict)
+        generation = generate(get_input(t), ranking(constraint_dict_noise))
+        rip_parse = rip(t, ranking(constraint_dict_noise))
+    else:
+        generation = generate(get_input(t), ranking(constraint_dict))
+        rip_parse = rip(t, ranking(constraint_dict))
 
     if generation[0] == rip_parse[0]:
         learned_success_list.append(t)
 
         for const in constraint_dict.keys():
-            trend_tracks[const].append(constraint_dict[const])    
+            trend_tracks[const].append(constraint_dict[const])
 
     else:
         # new grammar
