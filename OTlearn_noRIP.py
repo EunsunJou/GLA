@@ -179,8 +179,9 @@ def ranking(const_dict):
     ranked_list_raw=[]
     for const in const_dict:
         ranked_list_raw.append((const, const_dict[const]))
-    ranked_list_raw = sorted(ranked_list_raw, key=lambda x: x[1], reverse=True)
-    ranked_list = [x[0] for x in ranked_list_raw]
+    random.shuffle(ranked_list_raw)
+    ranked_list = sorted(ranked_list_raw, key=lambda x: x[1], reverse=True)
+    ranked_list = [x[0] for x in ranked_list]
     return ranked_list
 
 # A recursive function that does run-of-the-mill OT
@@ -254,15 +255,16 @@ def generate(inp, ranked_consts):
     return (winner, gen_viol_profile)
         
 # Adjusting the grammar, given the list of good and bad constraints
-def adjust_grammar(good_consts, bad_consts, const_dict):
+def adjust_grammar(good_consts, bad_consts, const_dict, plasticity):
     for const in good_consts:
-        const_dict[const] = const_dict[const] + 1
+        #const_dict[const] = const_dict[const] + float(plasticity/len(good_consts))
+        const_dict[const] = const_dict[const] + float(plasticity)
     for const in bad_consts:
-        const_dict[const] = const_dict[const] - 1
+        const_dict[const] = const_dict[const] - float(plasticity)
     return const_dict
 
 # In the face of an error, classify constraints into good, bad, and irrelevant constraints.
-def learn(winner_viol_profile, loser_viol_profile, const_dict):
+def learn(winner_viol_profile, loser_viol_profile, const_dict, plasticity):
     good_consts = [] # Ones that are violated more by the "wrong" parse than by the actual datum
     bad_consts = [] # Ones that are violated more by actual datum than by the "wrong" parse
     for const in winner_viol_profile.keys():
@@ -273,7 +275,7 @@ def learn(winner_viol_profile, loser_viol_profile, const_dict):
         else: # equal number of violations for the parse and the datum
             continue
     # Adjust the grammar according to the contraint classifications
-    return adjust_grammar(good_consts, bad_consts, const_dict)
+    return adjust_grammar(good_consts, bad_consts, const_dict, plasticity)
 
 ##### Part 3: Learning #########################################################
 
@@ -330,6 +332,15 @@ change_counter = 0
 for t in target_list_shuffled:
     datum_counter += 1
 
+    if datum_counter < 100000:
+        plasticity = 1
+    elif 100000 <= datum_counter < 200000:
+        plasticity = 0.1
+    elif 200000 <= datum_counter < 300000:
+        plasticity = 0.01
+    elif 300000 <= datum_counter:
+        plasticity = 0.001
+
     pair = t.split(",")
     inp = pair[0]
     target = pair[1]
@@ -371,20 +382,12 @@ for t in target_list_shuffled:
 
     if datum_counter % 1000 == 0:
         print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+    
 
-print(len(learned_success_list))
 
 results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
 
 results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_list_shuffled))+" times\n")
-
-'''
-results_file.write("Overt forms that were never learned:\n")
-learned_success_set = set(learned_success_list)
-failure_set = target_set.difference(learned_success_set)
-for x in sorted(failure_set):
-    results_file.write(x.rstrip()+"\n")
-'''
 
 results_file.write("Learned grammar:\n")
 ranked_constraints_post = ranking(constraint_dict)
@@ -402,14 +405,6 @@ results_file.close()
 
 
 ### Plotting
-'''
-intervals = []
-changes = []
-for i in range(0, len(interval_track)-1):
-    intervals.append(interval_track[i+1]-interval_track[i])
-    changes.append(i+1)
-'''
-
 plt.subplot(2, 1, 1)  
 for const in constraint_dict.keys():
     plt.plot(iteration_track, trend_tracks[const], label=str(const))
@@ -438,18 +433,6 @@ plt.plot(iteration_track, learning_track)
 #plt.xscale('log')
 plt.yticks(yticks_learning)
 # y-axis for learning track should be 1, 2, ..., num_of_datum_tokens
-
-
-
-
-
-'''
-plt.subplot(3, 1, 3)
-plt.plot(changes, intervals)
-plt.ylim(0, max(intervals)+1)
-#yticks_intervals = list(range(max(intervals)+1))
-#plt.yticks(yticks_intervals)
-'''
 
 fig_path = result_file_path[:-4]+".pdf"
 plt.savefig(fig_path)
