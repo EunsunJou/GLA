@@ -162,10 +162,11 @@ for t in tableaux_string:
 
 # Add random noise to ranking values of each constraint
 def add_noise(const_dict):
+    const_dict_copy = const_dict.copy()
     for const in const_dict:
-        noise = random.gauss(0, 0.5)
-        const_dict[const] = const_dict[const] + noise
-    return const_dict
+        noise = random.gauss(0, 2)
+        const_dict_copy[const] = const_dict[const] + noise
+    return const_dict_copy
 
 def get_input(output):
     for inp in input_tableaux.keys():
@@ -363,7 +364,7 @@ for t in target_list_shuffled:
         #print("ERROR: Observed "+target+" generated "+generation[0])
 
         # new grammar
-        constraint_dict = learn(input_tableaux[inp][target], generation[1], constraint_dict)
+        constraint_dict = learn(input_tableaux[inp][target], generation[1], constraint_dict, plasticity)
         # new generation with new grammar
         generation = generate(inp, ranking(constraint_dict))
 
