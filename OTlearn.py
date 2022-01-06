@@ -226,10 +226,11 @@ def get_input(overt_string):
 
 # Add random noise to ranking values of each constraint
 def add_noise(const_dict):
-    for const in const_dict:
+    const_dict_copy = const_dict.copy()
+    for const in const_dict.keys():
         noise = random.gauss(0, 0.5)
-        const_dict[const] = const_dict[const] + noise
-    return const_dict
+        const_dict_copy[const] = const_dict[const] + noise
+    return const_dict_copy
 
 # Rank constraints in const_dict by their ranking value and return an ordered list
 def ranking(const_dict):
