@@ -236,6 +236,8 @@ def ranking(const_dict):
     ranked_list_raw=[]
     for const in const_dict:
         ranked_list_raw.append((const, const_dict[const]))
+    # Random shuffle raw list to get rid of the effects of Python's default ordering
+    random.shuffle(ranked_list_raw) 
     ranked_list_raw = sorted(ranked_list_raw, key=lambda x: x[1], reverse=True)
     ranked_list = [x[0] for x in ranked_list_raw]
     return ranked_list
@@ -329,9 +331,9 @@ def rip(overt, ranked_consts):
 # Adjusting the grammar, given the list of good and bad constraints
 def adjust_grammar(good_consts, bad_consts, const_dict):
     for const in good_consts:
-        const_dict[const] = const_dict[const] + 0.1
+        const_dict[const] = const_dict[const] + 1
     for const in bad_consts:
-        const_dict[const] = const_dict[const] - 0.1
+        const_dict[const] = const_dict[const] - 1
     return const_dict
 
 # In the face of an error, classify constraints into good, bad, and irrelevant constraints.
@@ -389,7 +391,7 @@ for const in constraint_dict.keys():
 ### Define variables to track
 # track the iteration number where change occurred
 # (will plot the interval between changes)
-# interval_track = [] 
+interval_track = [] 
 # track number of learned tokens
 learning_track = []
 # track number of iterations for plotting
@@ -404,19 +406,19 @@ for t in target_list_shuffled:
     datum_counter += 1
 
     if noise:
-        constraint_dict_noise = add_noise(constraint_dict)
-        generation = generate(get_input(t), ranking(constraint_dict_noise))
-        rip_parse = rip(t, ranking(constraint_dict_noise))
+        constraint_dict_noisy = add_noise(constraint_dict)
+        generation = generate(get_input(t), ranking(constraint_dict_noisy))
+        rip_parse = rip(t, ranking(constraint_dict_noisy))
     else:
         generation = generate(get_input(t), ranking(constraint_dict))
         rip_parse = rip(t, ranking(constraint_dict))
+
 
     if generation[0] == rip_parse[0]:
         learned_success_list.append(t)
 
         for const in constraint_dict.keys():
             trend_tracks[const].append(constraint_dict[const])
-
     else:
         # new grammar
         constraint_dict = learn(rip_parse[1], generation[1], constraint_dict)
@@ -426,7 +428,7 @@ for t in target_list_shuffled:
         rip_parse = rip(t, ranking(constraint_dict))
         change_counter += 1
 
-        #interval_track.append(datum_counter)
+        interval_track.append(datum_counter)
 
         for const in constraint_dict.keys():
             trend_tracks[const].append(constraint_dict[const])
@@ -463,15 +465,13 @@ print("Output file: "+result_file_name[1:])
 results_file.close()
 
 ### Plotting
-'''
 intervals = []
 changes = []
 for i in range(0, len(interval_track)-1):
     intervals.append(interval_track[i+1]-interval_track[i])
     changes.append(i+1)
-'''
 
-plt.subplot(2, 1, 1)  
+plt.subplot(3, 1, 1)  
 for const in constraint_dict.keys():
     plt.plot(iteration_track, trend_tracks[const], label=str(const))
     #plt.xscale('log')
@@ -494,7 +494,7 @@ while i < len(learned_success_list):
 
 yticks_learning.append(len(learned_success_list))
 
-plt.subplot(2, 1, 2)
+plt.subplot(3, 1, 2)
 plt.plot(iteration_track, learning_track)
 #plt.xscale('log')
 plt.yticks(yticks_learning)
@@ -502,17 +502,14 @@ plt.yticks(yticks_learning)
 
 
 
-
-
-'''
 plt.subplot(3, 1, 3)
 plt.plot(changes, intervals)
 plt.ylim(0, max(intervals)+1)
 #yticks_intervals = list(range(max(intervals)+1))
 #plt.yticks(yticks_intervals)
-'''
+
 
 fig_path = result_file_path[:-4]+".pdf"
 plt.savefig(fig_path)
-#plt.show()
+plt.show()
 
