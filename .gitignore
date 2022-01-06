@@ -1,4 +1,8 @@
 *.txt
 *.bat
 
+csv_maker.py
+
 results/
+
+deprecated_No2Stress/
