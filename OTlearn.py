@@ -213,6 +213,19 @@ for t in tableaux_string:
 
 ##### Part 2: Defining utility functions #######################################
 
+def get_input(overt_string, input_tableaux):
+    potential_inps = []
+    for inp in input_tableaux.keys():
+        if overt_string in input_tableaux[inp].keys():
+            potential_inps.append(inp)
+    if len(potential_inps) == 0:
+        raise ValueError("No input found: "+overt_string+" is not a candidate in this grammar file.")
+    
+    return potential_inps
+
+def get_input_RIP():
+
+'''
 # Extract input from overt form
 def get_input(overt_string):
     core_pattern = re.compile(r"\[(.*)\]")
@@ -513,4 +526,4 @@ plt.ylim(0, max(intervals)+1)
 fig_path = result_file_path[:-4]+".pdf"
 plt.savefig(fig_path)
 plt.show()
-
+'''
