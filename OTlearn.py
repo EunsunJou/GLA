@@ -28,7 +28,6 @@ import datetime
 import os
 import matplotlib.pyplot as plt
 #from labellines import labelLine, labelLines
-import time
 import math
 
 lang = sys.argv[1][:6]
@@ -228,7 +227,7 @@ def get_input(overt_string):
 def add_noise(const_dict):
     const_dict_copy = const_dict.copy()
     for const in const_dict.keys():
-        noise = random.gauss(0, 0.5)
+        noise = random.gauss(0, 2)
         const_dict_copy[const] = const_dict[const] + noise
     return const_dict_copy
 
