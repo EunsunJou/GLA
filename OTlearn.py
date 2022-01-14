@@ -360,7 +360,7 @@ def learn(rip_viol_profile, generate_viol_profile, const_dict):
         else: # equal number of violations for the parse and the datum
             continue
     # Adjust the grammar according to the contraint classifications
-    return adjust_grammar(good_consts, bad_consts, const_dict)
+    return adjust_grammar(good_consts, bad_consts, const_dict)   
 
 ##### Part 3: Learning #########################################################
 
@@ -419,10 +419,10 @@ for t in target_list_shuffled:
 
     if noise:
         constraint_dict_noisy = add_noise(constraint_dict)
-        generation = generate(get_input(t), ranking(constraint_dict_noisy))
+        generation = generate(make_input(t), ranking(constraint_dict_noisy))
         rip_parse = rip(t, ranking(constraint_dict_noisy))
     else:
-        generation = generate(get_input(t), ranking(constraint_dict))
+        generation = generate(make_input(t), ranking(constraint_dict))
         rip_parse = rip(t, ranking(constraint_dict))
 
 
