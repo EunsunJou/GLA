@@ -28,6 +28,7 @@ import datetime
 import os
 import matplotlib.pyplot as plt
 import math
+import time
 
 #lang = sys.argv[1][:6]
 #syll_num = sys.argv[1][-9]
@@ -268,7 +269,7 @@ def build_overt_tableaux_RIP(grammar_string):
 
 ##### Part 2: Defining utility functions #######################################
 # Make constraint dictionary
-def const_dict(grammar_string, initiate=False, init_value=100.0):
+def const_dict(grammar_string, initiate=True, init_value=100.0):
     const_dict = {}
     consts_rv = re.findall(const_pattern, grammar_string)
     if initiate:
@@ -432,11 +433,11 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
     target_set = set(target_list)
 
     datum_counter = 0
+    change_counter = 0
+    learned_list = []
 
     for t in target_list_shuffled:
         datum_counter += 1
-        change_counter = 0
-        learned_list = []
 
         if noise_bool==True:
             const_dict_noisy = add_noise(const_dict, noise_sigma)
