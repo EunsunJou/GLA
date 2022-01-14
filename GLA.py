@@ -500,6 +500,17 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
 
     return (const_dict, change_counter, failed_set)
 
+string = grammar_string('./grammars/hypo02_grammar.txt')
+tgts = target_readlines('hypo02_1000_7syll.txt')
+
+
+inpt = build_input_tableaux_RIP(string)
+ovtt = build_overt_tableaux_RIP(string)
+cd = const_dict(string)
+
+tup = do_learning_RIP(tgts, cd, inpt, ovtt)
+
+exit()
 
 ##### Part 3: Learning #########################################################
 
