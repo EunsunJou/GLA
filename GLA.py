@@ -427,13 +427,16 @@ def learn(winner_viol_profile, loser_viol_profile, const_dict, plasticity):
     # Adjust the grammar according to the contraint classifications
     return adjust_grammar(good_consts, bad_consts, const_dict, plasticity)
 
-def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0):
+def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
     target_list_shuffled = random.sample(target_list, len(target_list))
+    target_set = set(target_list)
 
     datum_counter = 0
 
     for t in target_list_shuffled:
         datum_counter += 1
+        change_counter = 0
+        learned_list = []
 
         if noise_bool==True:
             const_dict_noisy = add_noise(const_dict, noise_sigma)
@@ -444,8 +447,9 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
             rip_parse = rip(t, ranking(const_dict), overt_tableaux)
 
         if generation[0] == rip_parse[0]:
-            pass
+            learned_list.append(t)
         else:
+            change_counter += 1
             # new grammar
             const_dict = learn(rip_parse[1], generation[1], const_dict, plasticity)
             # new generation with new grammar
@@ -453,15 +457,21 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
             # new rip parse with new grammar
             rip_parse = rip(t, ranking(const_dict), overt_tableaux)
         
-        if datum_counter % 1000 == 0:
+        if print_bool and datum_counter % print_cycle == 0:
             print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
 
-    return const_dict
+    learned_set = set(learned_list)
+    failed_set = target_set.difference(learned_set)
 
-def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0):
+    return (const_dict, change_counter, failed_set)
+
+def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
     target_list_shuffled = random.sample(target_list, len(target_list))
+    target_set = set(target_list)
 
     datum_counter = 0
+    change_counter = 0
+    learned_list = []
 
     for t in target_list_shuffled:
         datum_counter += 1
@@ -473,18 +483,21 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
             generation = generate(inp, ranking(const_dict), input_tableaux)
 
         if generation[0] == t:
-            pass
+            learned_list.append(t)
         else:
+            change_counter += 1
             # new grammar
             constraint_dict = learn(input_tableaux[inp][t], generation[1], constraint_dict, plasticity)
             # new generation with new grammar
             generation = generate(inp, ranking(constraint_dict), input_tableaux)
         
-        if datum_counter % 10 == 0:
+        if print_bool and datum_counter % print_cycle == 0:
             print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+    
+    learned_set = set(learned_list)
+    failed_set = target_set.difference(learned_set)
 
-    return const_dict
-
+    return (const_dict, change_counter, failed_set)
 
 
 ##### Part 3: Learning #########################################################
@@ -508,10 +521,6 @@ results_file = open(result_file_path, 'w')
 
 starttime = datetime.datetime.now()
 
-# Put all constraints at 100 ranking value
-constraint_dict={}
-for c in consts:
-    constraint_dict[c] = 100.0
 
 # Learner will go through all words in target file, but in random order.
 target_list_shuffled = random.sample(target_list, len(target_list))
