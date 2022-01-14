@@ -430,7 +430,11 @@ def learn(winner_viol_profile, loser_viol_profile, const_dict, plasticity):
 def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0):
     target_list_shuffled = random.sample(target_list, len(target_list))
 
+    datum_counter = 0
+
     for t in target_list_shuffled:
+        datum_counter += 1
+
         if noise_bool==True:
             const_dict_noisy = add_noise(const_dict, noise_sigma)
             generation = generate(make_input(t), ranking(const_dict_noisy), input_tableaux)
@@ -440,7 +444,7 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
             rip_parse = rip(t, ranking(const_dict), overt_tableaux)
 
         if generation[0] == rip_parse[0]:
-            continue
+            pass
         else:
             # new grammar
             const_dict = learn(rip_parse[1], generation[1], const_dict, plasticity)
@@ -448,13 +452,20 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
             generation = generate(make_input(t), ranking(const_dict), input_tableaux)
             # new rip parse with new grammar
             rip_parse = rip(t, ranking(const_dict), overt_tableaux)
-    
+        
+        if datum_counter % 1000 == 0:
+            print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+
     return const_dict
 
 def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0):
     target_list_shuffled = random.sample(target_list, len(target_list))
 
+    datum_counter = 0
+
     for t in target_list_shuffled:
+        datum_counter += 1
+
         inp = find_input(t, input_tableaux)
         if noise_bool==True:    
             generation = generate(inp, ranking(add_noise(const_dict, noise_sigma)), input_tableaux)
@@ -462,16 +473,19 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
             generation = generate(inp, ranking(const_dict), input_tableaux)
 
         if generation[0] == t:
-            continue
+            pass
         else:
             # new grammar
             constraint_dict = learn(input_tableaux[inp][t], generation[1], constraint_dict, plasticity)
             # new generation with new grammar
             generation = generate(inp, ranking(constraint_dict), input_tableaux)
-    
+        
+        if datum_counter % 10 == 0:
+            print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+
     return const_dict
 
-exit()
+
 
 ##### Part 3: Learning #########################################################
 
