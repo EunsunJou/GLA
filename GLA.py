@@ -179,7 +179,7 @@ def build_input_tableaux_RIP(grammar_string):
         inp = re.findall(input_pattern, t)[0]
 
         # Access the candidates again, to pick out parse and violation profile.
-        # Each element of canddiates is a (<candidate>, <violation profile>) tuple.
+        # Each element of candidates is a (<candidate>, <violation profile>) tuple.
         candidates = re.findall(candidate_pattern, t)
         
         # Following for-loop is identical to overt_tableaux
@@ -204,49 +204,61 @@ def build_input_tableaux_RIP(grammar_string):
     
     return input_tableaux
 
-def  build_overt_tableaux_RIP(grammar_string):
+def build_overt_tableaux_RIP(grammar_string):
     tableaux_string = re.findall(tableau_pattern, grammar_string)
     tableaux_string = [t[0] for t in tableaux_string]
     consts = re.findall(const_pattern, grammar_string)
 
     overt_tableaux = {}
     for t in tableaux_string:
-        candidates = re.findall(candidate_pattern, t)
+        candidates_match = re.findall(candidate_pattern, t)
 
         overt_set = []
-        for cand in candidates:
-            parse_and_overt = cand[0]
+        candidates = []
+        # candidates 
+        for match in candidates_match:
+            parse_and_overt = match[0]
             if len(re.findall(rip_pattern, parse_and_overt)) != 1:
                 raise ValueError("Candidate "+parse_and_overt+" doesn't look like an RIP candidate. Please check grammar file.")
-            overt = re.findall(rip_pattern, parse_and_overt)[0]
+            overt = re.findall(rip_pattern, parse_and_overt)[0][0]
+            parse = re.findall(rip_pattern, parse_and_overt)[0][1]
+            viol_string = match[1]
+
             overt_set.append(overt)
+            candidates.append((overt, parse, viol_string))
         overt_set = set(overt_set)
 
         for overt in overt_set:
             parse_evals = {}
 
             for cand in candidates:
-                print(cand)
+                cand_overt = cand[0]
+                cand_parse = cand[1]
+                cand_viol_string = cand[2]
 
-            if overt == cand_overt:
-                # convert violation profile from string to list
-                # E.g., from '0 1 0' to ['0', '1', '0']
-                viols = viols_string.rstrip().split(' ')
-                # convert string (e.g., '0') to integer (e.g., 0)
-                viols = [int(x) for x in viols]
-                # Map the list of constraints with list of violations,
-                # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
-                viol_profile = map_lists_to_dict(consts, viols)
+                if overt == cand_overt:
+                    # convert violation profile from string to list
+                    # E.g., from '0 1 0' to ['0', '1', '0']
+                    viols = cand_viol_string.rstrip().split(' ')
+                    # convert string (e.g., '0') to integer (e.g., 0)
+                    viols = [int(x) for x in viols]
+                    # Map the list of constraints with list of violations,
+                    # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
+                    viol_profile = map_lists_to_dict(consts, viols)
 
-                parse_evals[cand_parse] = viol_profile
+                    parse_evals[cand_parse] = viol_profile
             
             overt_tableaux[overt] = parse_evals
     
     return overt_tableaux
 
+string = grammar_string('./grammars/hypo02_grammar.txt')
 
-ovt = build_overt_tableaux_RIP(grammar_string('./grammars/hypo02_grammar.txt'))
-#print(ovt)
+print(build_overt_tableaux_RIP(string).keys())
+
+
+
+exit()
 
 '''
 # Only RIP needs to build overt tableaux
