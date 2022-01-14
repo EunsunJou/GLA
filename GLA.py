@@ -74,6 +74,7 @@ const_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\")\s*([\d\.]+)\s*")
 tableau_pattern = re.compile(r"(input.*\n(\s*candidate.*\s*)+)")
 input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(.*)\"") 
 candidate_pattern = re.compile(r"candidate.*\[\d+\]:.*\"(.*)\"\D*([\d ]+)")
+rip_pattern = re.compile(r"(\[.*\]).*(/.*/)")
 
 
 # I define two helper functions here to use later in breaking up tableaux.
@@ -151,6 +152,47 @@ def build_input_tableaux(grammar_string):
         for cand in candidates:
             parse = cand[0]
             viols_string = cand[1]
+            viols = viols_string.rstrip().split(' ')
+            viols = [int(x) for x in viols] 
+
+            viol_profile = map_lists_to_dict(consts, viols)
+            parse_evals[parse] = viol_profile
+            
+        input_tableaux[inp] = parse_evals
+    
+    return input_tableaux
+
+def build_input_tableaux_RIP(grammar_string):
+    tableaux_string = re.findall(tableau_pattern, grammar_string)
+    tableaux_string = [t[0] for t in tableaux_string]
+    consts = re.findall(const_pattern, grammar_string)
+    
+    input_tableaux = {}
+    for t in tableaux_string:
+        # Since there's only one input form per tableau,
+        # re.findall should always yield a list of length 1)
+        if len(re.findall(input_pattern, t)) == 0:
+            raise ValueError("No input found in the following tableaux_string. Pleae check grammar file.\n"+t)
+        elif len(re.findall(input_pattern, t)) > 1:
+            raise ValueError("Found more than one input form in tableau. Please check grammar file.")
+
+        inp = re.findall(input_pattern, t)[0]
+
+        # Access the candidates again, to pick out parse and violation profile.
+        # Each element of canddiates is a (<candidate>, <violation profile>) tuple.
+        candidates = re.findall(candidate_pattern, t)
+        
+        # Following for-loop is identical to overt_tableaux
+        parse_evals = {}
+        for cand in candidates:
+            # The candidate string for an RIP includes both the parse and the output.
+            # I.e., "/output/ \-> [parse]"
+            parse_and_output = cand[0]
+            if len(re.findall(rip_pattern, parse_and_output)) != 1:
+                raise ValueError("Candidate "+cand+" doesn't look like an RIP candidate. Please check grammar file.")
+            output = re.findall(rip_pattern, parse_and_output)[0]
+            parse = re.findall(rip_pattern, parse_and_output)[1]
+            viols_string = cand[1]
 
             viols = viols_string.rstrip().split(' ')
             viols = [int(x) for x in viols] 
@@ -160,11 +202,55 @@ def build_input_tableaux(grammar_string):
             
         input_tableaux[inp] = parse_evals
     
-    return input_tableaux['/pa?.lak/']['[pa.lak]']
+    return input_tableaux
 
-print(build_input_tableaux(grammar_string('ilokano_grammar.txt')))
+def  build_overt_tableaux_RIP(grammar_string):
+    tableaux_string = re.findall(tableau_pattern, grammar_string)
+    tableaux_string = [t[0] for t in tableaux_string]
+    consts = re.findall(const_pattern, grammar_string)
 
-def build_overt_tableaux(grammar_string):
+    overt_tableaux = {}
+    for t in tableaux_string:
+        candidates = re.findall(candidate_pattern, t)
+
+        overt_set = []
+        for cand in candidates:
+            parse_and_overt = cand[0]
+            if len(re.findall(rip_pattern, parse_and_overt)) != 1:
+                raise ValueError("Candidate "+parse_and_overt+" doesn't look like an RIP candidate. Please check grammar file.")
+            overt = re.findall(rip_pattern, parse_and_overt)[0]
+            overt_set.append(overt)
+        overt_set = set(overt_set)
+
+        for overt in overt_set:
+            parse_evals = {}
+
+            for cand in candidates:
+                print(cand)
+
+            if overt == cand_overt:
+                # convert violation profile from string to list
+                # E.g., from '0 1 0' to ['0', '1', '0']
+                viols = viols_string.rstrip().split(' ')
+                # convert string (e.g., '0') to integer (e.g., 0)
+                viols = [int(x) for x in viols]
+                # Map the list of constraints with list of violations,
+                # so that the value of the dictionary is ((CONST_NAME, VIOL), (CONST_NAME, VIOL), ...)
+                viol_profile = map_lists_to_dict(consts, viols)
+
+                parse_evals[cand_parse] = viol_profile
+            
+            overt_tableaux[overt] = parse_evals
+    
+    return overt_tableaux
+
+
+ovt = build_overt_tableaux_RIP(grammar_string('./grammars/hypo02_grammar.txt'))
+#print(ovt)
+
+'''
+# Only RIP needs to build overt tableaux
+def build_overt_tableaux_RIP(grammar_string):
     tableaux_string = re.findall(tableau_pattern, grammar_string)
     tableaux_string = [t[0] for t in tableaux_string]
     consts = re.findall(const_pattern, grammar_string)
@@ -211,7 +297,7 @@ def build_overt_tableaux(grammar_string):
             overt_tableaux[overt] = parse_evals
 
     return overt_tableaux
-
+'''
 
 ##### Part 2: Defining utility functions #######################################
 # Make constraint dictionary
@@ -417,10 +503,6 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
             generation = generate(inp, ranking(constraint_dict), input_tableaux)
     
     return const_dict
-
-inpt = build_input_tableaux(grammar_string('ilokano_grammar.txt'))
-
-print(inpt)
 
 #tgts = target_readlines('ilokano_toydata.txt')
 #cd = const_dict(grammar_string('ilokano_grammar.txt'), True, 100)

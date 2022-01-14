@@ -211,6 +211,10 @@ for t in tableaux_string:
     input_tableaux[inp] = parse_evals
 
 
+print(input_tableaux.keys())
+
+print(overt_tableaux.keys())
+
 ##### Part 2: Defining utility functions #######################################
 
 def find_input(overt_string, input_tableaux):
@@ -225,7 +229,7 @@ def find_input(overt_string, input_tableaux):
 # Output is not 'found' from the tableaux in RIP-GLA.
 # In fact, the whole point of doing RIP is to find the right input.
 # E.g., is [H1 H2] analyzed as /(H1 H2)/ or /(H1) (H2)/?
-def make_input(overt_string):
+def get_input(overt_string):
     core_pattern = re.compile(r"\[(.*)\]")
     if not re.search(core_pattern, overt_string):
         raise ValueError("Format of overt form "+overt_string+" is not appropriate. It should look like '[L1 H H]'.")
@@ -362,6 +366,7 @@ def learn(rip_viol_profile, generate_viol_profile, const_dict):
     # Adjust the grammar according to the contraint classifications
     return adjust_grammar(good_consts, bad_consts, const_dict)   
 
+'''
 ##### Part 3: Learning #########################################################
 
 # Timestamp for file
