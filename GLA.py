@@ -28,7 +28,6 @@ import datetime
 import os
 import matplotlib.pyplot as plt
 import math
-import time
 
 #lang = sys.argv[1][:6]
 #syll_num = sys.argv[1][-9]
@@ -436,6 +435,18 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
     change_counter = 0
     learned_list = []
 
+    # Data to be plotted
+    # track the iteration number where change occurred
+    # (will plot the interval between changes)
+    interval_track = [] 
+    # track number of learned tokens
+    learning_track = []
+    # Track ranking values for each constraint
+    ranking_value_tracks = []
+    for const in const_dict.keys():
+        ranking_value_tracks[const] = []
+
+
     for t in target_list_shuffled:
         datum_counter += 1
 
@@ -449,6 +460,10 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
 
         if generation[0] == rip_parse[0]:
             learned_list.append(t)
+
+            ### Export information for plotting
+            for const in ranking_value_tracks.keys():
+                ranking_value_tracks[const].append(ranking_value_tracks[const])
         else:
             change_counter += 1
             # new grammar
@@ -457,14 +472,23 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
             generation = generate(make_input(t), ranking(const_dict), input_tableaux)
             # new rip parse with new grammar
             rip_parse = rip(t, ranking(const_dict), overt_tableaux)
+
+            ### Export information for plotting
+            for const in ranking_value_tracks.keys():
+                ranking_value_tracks[const].append(ranking_value_tracks[const])
+            
+            interval_track.append(datum_counter)
         
+        ### Export information for plotting
+        learning_track.append(len(learned_list))
+
         if print_bool and datum_counter % print_cycle == 0:
             print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
 
     learned_set = set(learned_list)
     failed_set = target_set.difference(learned_set)
 
-    return (const_dict, change_counter, failed_set)
+    return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
 
 def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
     target_list_shuffled = random.sample(target_list, len(target_list))
@@ -473,6 +497,17 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
     datum_counter = 0
     change_counter = 0
     learned_list = []
+
+    # Data to be plotted
+    # track the iteration number where change occurred
+    # (will plot the interval between changes)
+    interval_track = [] 
+    # track number of learned tokens
+    learning_track = []
+    # Track ranking values for each constraint
+    ranking_value_tracks = []
+    for const in const_dict.keys():
+        ranking_value_tracks[const] = []
 
     for t in target_list_shuffled:
         datum_counter += 1
@@ -485,23 +520,119 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
 
         if generation[0] == t:
             learned_list.append(t)
+
+            ### Export information for plotting
+            for const in ranking_value_tracks.keys():
+                ranking_value_tracks[const].append(ranking_value_tracks[const])
         else:
             change_counter += 1
             # new grammar
             constraint_dict = learn(input_tableaux[inp][t], generation[1], constraint_dict, plasticity)
             # new generation with new grammar
             generation = generate(inp, ranking(constraint_dict), input_tableaux)
+
+            ### Export information for plotting
+            for const in ranking_value_tracks.keys():
+                ranking_value_tracks[const].append(ranking_value_tracks[const])
+            
+            interval_track.append(datum_counter)
         
+        ### Export information for plotting
+        learning_track.append(len(learned_list))
+
         if print_bool and datum_counter % print_cycle == 0:
             print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
     
     learned_set = set(learned_list)
     failed_set = target_set.difference(learned_set)
 
-    return (const_dict, change_counter, failed_set)
+    return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
+
+
+def write_results(learning_result, lang_name, is_RIP=None):
+    const_dict = learning_result[0]
+    change_counter = learning_result[1]
+    num_of_data = learning_result[2]
+    failed_set = learning_result[3]
+    plasticity = learning_result[4]
+    noise_bool = learning_result[5]
+    noise_sigma = learning_result[6]
+    
+    # Timestamp for file
+    yy = str(datetime.datetime.now())[2:4]
+    mm = str(datetime.datetime.now())[5:7]
+    dd = str(datetime.datetime.now())[8:10]
+    hh = str(datetime.datetime.now())[11:13]
+    mn = str(datetime.datetime.now())[14:16]
+    ss = str(datetime.datetime.now())[17:19]
+    timestamp = yy+mm+dd+"_"+hh+mn+ss
+
+    # Designate absolute path of results file and open it
+    script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
+    results_path = script_path + '\\results'
+    result_file_name = "\\"+lang_name+"_"+timestamp+".txt"
+    result_file_path = results_path + result_file_name
+    results_file = open(result_file_path, 'w')
+
+    # Write title
+    if is_RIP == True:
+        results_file.write("RIP/OT-GLA learning results\n")
+    elif is_RIP == False:
+        results_file.write("OT-GLA learning results\n")
+    else:
+        results_file.write("OT-GLA learning results (unknown if RIP or not)\n")
+    
+    # Write how many times the grammar was changed
+    results_file.write("Grammar changed "+str(change_counter)+"/"+str(num_of_data)+" times\n")
+
+    # Write plasticity and noise settings
+    results_file.write("Plasticity: "+str(plasticity)+"\n")
+    if noise_bool == True:
+        results_file.write("Noise: "+str(noise_sigma)+"\n")
+    else:
+        results_file.write("Noise: No noise\n\n")
+
+    # Write actual ranking values
+    results_file.write("Constraints and ranking values\n")
+    for const in ranking(const_dict):
+        results_file.write(const+"\t"+str(const_dict[const])+"\n")
+
+    # If there were any datum types never learned, print them
+    if len(failed_set) > 0:
+        results_file.write("Overt forms that were never learned:")
+        for i in failed_set:
+            results_file.write(str(i)+"\n")
+
+    results_file.close()
+    print("Output file: "+result_file_name[1:])
+
+def plot_results(learning_result, plot_ranking_values=True, plot_learning=True, plot_intervals=True, *args):
+    num_of_data = len(learning_result[2])
+    iteration_track = list(range(1, num_of_data+1))
+    ranking_value_tracks = learning_result[7]
+    learning_track = learning_result[8]
+    interval_track = learning_result[9]
+    num_of_changes = learning_result[1]
+
+    num_of_plots = 0
+    for i in args:
+        if i == True:
+            num_of_plots += 1
+
+    if plot_ranking_values == True:
+        for const in ranking_value_tracks.keys():
+            plot_rv = plt.plot(iteration_track, ranking_value_tracks[const])
+
+    if plot_learning == True:
+        yticks_learning.append(len(learned_list))
+        plot_learning = plt.plot(iteration_track, learning_track)
+        plt.yticks(yticks_learning)
+    
+
+
 
 string = grammar_string('./grammars/hypo02_grammar.txt')
-tgts = target_readlines('hypo02_1000_7syll.txt')
+tgts = target_readlines('hypo02_1000_2syll.txt')
 
 
 inpt = build_input_tableaux_RIP(string)
@@ -509,6 +640,8 @@ ovtt = build_overt_tableaux_RIP(string)
 cd = const_dict(string)
 
 tup = do_learning_RIP(tgts, cd, inpt, ovtt)
+
+write_results(tup, 'hypo02', True)
 
 exit()
 
@@ -530,8 +663,6 @@ results_path = script_path + '\\results'
 result_file_name = "\\"+lang+"_"+str(syll_num)+"syll_"+timestamp+".txt"
 result_file_path = results_path + result_file_name
 results_file = open(result_file_path, 'w')
-
-starttime = datetime.datetime.now()
 
 
 # Learner will go through all words in target file, but in random order.
@@ -598,8 +729,6 @@ for t in target_list_shuffled:
         print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
 
 
-results_file.write("Maximum number of syllables: "+str(syll_num)+"\n")
-
 results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_list_shuffled))+" times\n")
 
 results_file.write("Overt forms that were never learned:\n")
@@ -613,11 +742,7 @@ ranked_constraints_post = ranking(constraint_dict)
 for const in ranked_constraints_post:
     results_file.write(const+"\t"+str(constraint_dict[const])+"\n")
 
-endtime = datetime.datetime.now()
-duration = endtime-starttime
-results_file.write("Time taken: "+str(duration))
 
-print("Time taken: "+str(duration))
 print("Output file: "+result_file_name[1:])
 
 results_file.close()
