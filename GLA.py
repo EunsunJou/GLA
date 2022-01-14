@@ -29,8 +29,8 @@ import os
 import matplotlib.pyplot as plt
 import math
 
-lang = sys.argv[1][:6]
-syll_num = sys.argv[1][-9]
+#lang = sys.argv[1][:6]
+#syll_num = sys.argv[1][-9]
 
 ##### Part 0: Open and save grammar and target files ############################
 
@@ -72,8 +72,8 @@ def target_readlines(txtfile):
 ### Regex Patterns
 const_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\")\s*([\d\.]+)\s*")
 tableau_pattern = re.compile(r"(input.*\n(\s*candidate.*\s*)+)")
-input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(\|.*\|)\"") 
-candidate_pattern = re.compile(r"candidate.*\[\d+\]\:.*\"(\[[LH\d ]+\]).*(/[LH\(\)\d ]+/)\"\s+([\d ]+)")
+input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(.*)\"") 
+candidate_pattern = re.compile(r"candidate.*\[\d+\]:.*\"(.*)\"\D*([\d ]+)")
 
 
 # I define two helper functions here to use later in breaking up tableaux.
@@ -134,20 +134,23 @@ def build_input_tableaux(grammar_string):
     input_tableaux = {}
     for t in tableaux_string:
         # Since there's only one input form per tableau,
-        # re.findall should always yield a list of length 1
-        if len(re.findall(input_pattern, t)) != 1:
+        # re.findall should always yield a list of length 1)
+        if len(re.findall(input_pattern, t)) == 0:
+            raise ValueError("No input found in the following tableaux_string. Pleae check grammar file.\n"+t)
+        elif len(re.findall(input_pattern, t)) > 1:
             raise ValueError("Found more than one input form in tableau. Please check grammar file.")
 
         inp = re.findall(input_pattern, t)[0]
 
         # Access the candidates again, to pick out parse and violation profile.
+        # Each element of canddiates is a (<candidate>, <violation profile>) tuple.
         candidates = re.findall(candidate_pattern, t)
-
+        
         # Following for-loop is identical to overt_tableaux
         parse_evals = {}
         for cand in candidates:
-            parse = cand[1]
-            viols_string = cand[2]
+            parse = cand[0]
+            viols_string = cand[1]
 
             viols = viols_string.rstrip().split(' ')
             viols = [int(x) for x in viols] 
@@ -157,8 +160,9 @@ def build_input_tableaux(grammar_string):
             
         input_tableaux[inp] = parse_evals
     
-    return input_tableaux
+    return input_tableaux['/pa?.lak/']['[pa.lak]']
 
+print(build_input_tableaux(grammar_string('ilokano_grammar.txt')))
 
 def build_overt_tableaux(grammar_string):
     tableaux_string = re.findall(tableau_pattern, grammar_string)
@@ -222,8 +226,19 @@ def const_dict(grammar_string, initiate=False, init_value=100.0):
             const_dict[str(const[0])] = float(const[1])
     return const_dict
 
-# Extract input from overt form
-def get_input(overt_string):
+def find_input(overt_string, input_tableaux):
+    potential_inps = []
+    for inp in input_tableaux.keys():
+        if overt_string in input_tableaux[inp].keys():
+            potential_inps.append(inp)
+    if len(potential_inps) == 0:
+        raise ValueError("No input found: "+overt_string+" is not a candidate in this grammar file.")
+    return potential_inps
+
+# Output is not 'found' from the tableaux in RIP-GLA.
+# In fact, the whole point of doing RIP is to find the right input.
+# E.g., is [H1 H2] analyzed as /(H1 H2)/ or /(H1) (H2)/?
+def make_input(overt_string):
     core_pattern = re.compile(r"\[(.*)\]")
     if not re.search(core_pattern, overt_string):
         raise ValueError("Format of overt form "+overt_string+" is not appropriate. It should look like '[L1 H H]'.")
@@ -232,7 +247,6 @@ def get_input(overt_string):
     core = re.sub(r"\d", "", core)
     inp = "|"+core+"|"
     return inp
-
 # Add random noise to ranking values of each constraint
 def add_noise(const_dict, noise_sigma=2.0):
     const_dict_copy = const_dict.copy()
@@ -347,72 +361,74 @@ def adjust_grammar(good_consts, bad_consts, const_dict, plasticity=1.0):
     return const_dict
 
 # In the face of an error, classify constraints into good, bad, and irrelevant constraints.
-def learn(rip_viol_profile, generate_viol_profile, const_dict, plasticity):
+def learn(winner_viol_profile, loser_viol_profile, const_dict, plasticity):
     good_consts = [] # Ones that are violated more by the "wrong" parse than by the actual datum
     bad_consts = [] # Ones that are violated more by actual datum than by the "wrong" parse
-    for const in rip_viol_profile.keys():
-        if rip_viol_profile[const] > generate_viol_profile[const]:
+    for const in winner_viol_profile.keys():
+        if winner_viol_profile[const] > loser_viol_profile[const]:
             bad_consts.append(const)
-        elif rip_viol_profile[const] < generate_viol_profile[const]:
+        elif winner_viol_profile[const] < loser_viol_profile[const]:
             good_consts.append(const)
         else: # equal number of violations for the parse and the datum
             continue
     # Adjust the grammar according to the contraint classifications
     return adjust_grammar(good_consts, bad_consts, const_dict, plasticity)
 
-def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, plasticity = 1.0, noise_bool=True, noise_sigma=2.0):
+def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0):
     target_list_shuffled = random.sample(target_list, len(target_list))
 
     for t in target_list_shuffled:
-        if noise_bool:
+        if noise_bool==True:
             const_dict_noisy = add_noise(const_dict, noise_sigma)
-            generation = generate(get_input(t), ranking(const_dict_noisy), input_tableaux)
+            generation = generate(make_input(t), ranking(const_dict_noisy), input_tableaux)
             rip_parse = rip(t, ranking(const_dict_noisy), overt_tableaux)
         else:
-            generation = generate(get_input(t), ranking(const_dict), input_tableaux)
+            generation = generate(make_input(t), ranking(const_dict), input_tableaux)
             rip_parse = rip(t, ranking(const_dict), overt_tableaux)
 
         if generation[0] == rip_parse[0]:
-            learned_success_list.append(t)
-
-            for const in const_dict.keys():
-                trend_tracks[const].append(const_dict[const])
+            continue
         else:
             # new grammar
             const_dict = learn(rip_parse[1], generation[1], const_dict, plasticity)
             # new generation with new grammar
-            generation = generate(get_input(t), ranking(const_dict), input_tableaux)
+            generation = generate(make_input(t), ranking(const_dict), input_tableaux)
             # new rip parse with new grammar
             rip_parse = rip(t, ranking(const_dict), overt_tableaux)
     
     return const_dict
 
-def do_learning(target_list, const_dict, input_tableaux, noise=True):
+def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0):
     target_list_shuffled = random.sample(target_list, len(target_list))
 
     for t in target_list_shuffled:
-        if noise:    
-            generation = generate(inp, ranking(add_noise(constraint_dict, sigma)))
+        inp = find_input(t, input_tableaux)
+        if noise_bool==True:    
+            generation = generate(inp, ranking(add_noise(const_dict, noise_sigma)), input_tableaux)
         else:
-            generation = generate(inp, ranking(constraint_dict))
+            generation = generate(inp, ranking(const_dict), input_tableaux)
 
-        if generation[0] == target:
-            #print(constraint_dict)
-            #time.sleep(0.5)
-
-            learned_success_list.append(target)
-
-            for const in constraint_dict.keys():
-                trend_tracks[const].append(constraint_dict[const])    
-
+        if generation[0] == t:
+            continue
         else:
-            #print("ERROR: Observed "+target+" generated "+generation[0])
-
             # new grammar
-            constraint_dict = learn(input_tableaux[inp][target], generation[1], constraint_dict, plasticity)
+            constraint_dict = learn(input_tableaux[inp][t], generation[1], constraint_dict, plasticity)
             # new generation with new grammar
-            generation = generate(inp, ranking(constraint_dict))
+            generation = generate(inp, ranking(constraint_dict), input_tableaux)
+    
+    return const_dict
 
+inpt = build_input_tableaux(grammar_string('ilokano_grammar.txt'))
+
+print(inpt)
+
+#tgts = target_readlines('ilokano_toydata.txt')
+#cd = const_dict(grammar_string('ilokano_grammar.txt'), True, 100)
+
+#print(do_learning(tgts, cd, inpt))
+
+
+'''
 
 
 ##### Part 3: Learning #########################################################
@@ -529,7 +545,7 @@ print("Output file: "+result_file_name[1:])
 
 results_file.close()
 
-'''
+
 ### Plotting
 intervals = []
 changes = []
