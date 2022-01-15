@@ -20,7 +20,6 @@
 # candidate: cand
 # input: inp (to avoid overlapping with input() function)
 
-
 import re
 import random
 import sys
@@ -70,7 +69,7 @@ def target_readlines(txtfile):
 # are based on this order.
 
 ### Regex Patterns
-const_pattern = re.compile(r"constraint\s+\[\d+\]:\s(\".*\")\s*([\d\.]+)\s*")
+const_pattern = re.compile(r"constraint\s+\[\d+\]:\s\"(.*)\"\s*([\d\.]+)\s*")
 tableau_pattern = re.compile(r"(input.*\n(\s*candidate.*\s*)+)")
 input_pattern = re.compile(r"input\s+\[\d+\]:\s+\"(.*)\"") 
 candidate_pattern = re.compile(r"candidate.*\[\d+\]:.*\"(.*)\"\D*([\d ]+)")
@@ -266,6 +265,17 @@ def build_overt_tableaux_RIP(grammar_string):
 
     return overt_tableaux
 
+def init_grammar(grammar_string, init_value=100):
+    input_tableaux = build_input_tableaux(grammar_string)
+    constraint_dict = const_dict(grammar_string, True, init_value)
+    return (input_tableaux, constraint_dict)
+
+def init_grammar_RIP(grammar_string, init_value=100):
+    input_tableaux = build_input_tableaux_RIP(grammar_string)
+    overt_tableaux = build_overt_tableaux_RIP(grammar_string)
+    constraint_dict = const_dict(grammar_string, True, init_value)
+    return (input_tableaux, overt_tableaux, constraint_dict)
+
 ##### Part 2: Defining utility functions #######################################
 # Make constraint dictionary
 def const_dict(grammar_string, initiate=True, init_value=100.0):
@@ -427,7 +437,13 @@ def learn(winner_viol_profile, loser_viol_profile, const_dict, plasticity):
     # Adjust the grammar according to the contraint classifications
     return adjust_grammar(good_consts, bad_consts, const_dict, plasticity)
 
-def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+
+
+def do_learning_RIP(target_list, init_grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+    input_tableaux = init_grammar_RIP[0]
+    overt_tableaux = init_grammar_RIP[1]
+    const_dict = init_grammar_RIP[2]
+    
     target_list_shuffled = random.sample(target_list, len(target_list))
     target_set = set(target_list)
 
@@ -442,7 +458,7 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
     # track number of learned tokens
     learning_track = []
     # Track ranking values for each constraint
-    ranking_value_tracks = []
+    ranking_value_tracks = {}
     for const in const_dict.keys():
         ranking_value_tracks[const] = []
 
@@ -490,7 +506,10 @@ def do_learning_RIP(target_list, const_dict, input_tableaux, overt_tableaux, pla
 
     return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
 
-def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+def do_learning(target_list, init_grammar, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+    input_tableaux = init_grammar[0]
+    const_dict = init_grammar[1]
+    
     target_list_shuffled = random.sample(target_list, len(target_list))
     target_set = set(target_list)
 
@@ -505,14 +524,14 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
     # track number of learned tokens
     learning_track = []
     # Track ranking values for each constraint
-    ranking_value_tracks = []
+    ranking_value_tracks = {}
     for const in const_dict.keys():
         ranking_value_tracks[const] = []
 
     for t in target_list_shuffled:
         datum_counter += 1
 
-        inp = find_input(t, input_tableaux)
+        inp = find_input(t, input_tableaux)[0]
         if noise_bool==True:    
             generation = generate(inp, ranking(add_noise(const_dict, noise_sigma)), input_tableaux)
         else:
@@ -527,9 +546,9 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
         else:
             change_counter += 1
             # new grammar
-            constraint_dict = learn(input_tableaux[inp][t], generation[1], constraint_dict, plasticity)
+            const_dict = learn(input_tableaux[inp][t], generation[1], const_dict, plasticity)
             # new generation with new grammar
-            generation = generate(inp, ranking(constraint_dict), input_tableaux)
+            generation = generate(inp, ranking(const_dict), input_tableaux)
 
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
@@ -540,7 +559,7 @@ def do_learning(target_list, const_dict, input_tableaux, plasticity=1.0, noise_b
         ### Export information for plotting
         learning_track.append(len(learned_list))
 
-        if print_bool and datum_counter % print_cycle == 0:
+        if print_bool==True and datum_counter % print_cycle == 0:
             print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
     
     learned_set = set(learned_list)
@@ -606,6 +625,12 @@ def write_results(learning_result, lang_name, is_RIP=None):
     results_file.close()
     print("Output file: "+result_file_name[1:])
 
+
+if __name__ == "__main__":
+    pass
+
+
+'''
 def plot_results(learning_result, plot_ranking_values=True, plot_learning=True, plot_intervals=True, *args):
     num_of_data = len(learning_result[2])
     iteration_track = list(range(1, num_of_data+1))
@@ -627,23 +652,24 @@ def plot_results(learning_result, plot_ranking_values=True, plot_learning=True, 
         yticks_learning.append(len(learned_list))
         plot_learning = plt.plot(iteration_track, learning_track)
         plt.yticks(yticks_learning)
-    
+
 
 
 
 string = grammar_string('./grammars/hypo02_grammar.txt')
 tgts = target_readlines('hypo02_1000_2syll.txt')
 
+grammar = init_grammar_RIP(string, 100)
 
-inpt = build_input_tableaux_RIP(string)
-ovtt = build_overt_tableaux_RIP(string)
-cd = const_dict(string)
+#inpt = build_input_tableaux_RIP(string)
+#ovtt = build_overt_tableaux_RIP(string)
+#cd = const_dict(string)
 
-tup = do_learning_RIP(tgts, cd, inpt, ovtt)
+tup = do_learning_RIP(tgts, grammar)
 
 write_results(tup, 'hypo02', True)
 
-exit()
+
 
 ##### Part 3: Learning #########################################################
 
@@ -796,3 +822,4 @@ plt.ylim(0, max(intervals)+1)
 fig_path = result_file_path[:-4]+".pdf"
 plt.savefig(fig_path)
 plt.show()
+'''
