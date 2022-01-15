@@ -6,3 +6,5 @@ csv_maker.py
 results/
 
 deprecated_No2Stress/
+
+__pycache__/
