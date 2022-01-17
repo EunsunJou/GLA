@@ -49,7 +49,7 @@ else:
 
 # The Grammar file is a specific format of a txt file created by Praat
 # (It is called an "otgrammar" object in the Praat documentation.
-grammar_file = open('PraatMetricalGrammar_2stress.txt', 'r')
+grammar_file = open('./grammars/PraatMetricalGrammar_2stress.txt', 'r')
 grammar_text = grammar_file.read()
 
 # The target file is the list of overt forms to be learned by the learner.
@@ -210,9 +210,24 @@ for t in tableaux_string:
     input_tableaux[inp] = parse_evals
 
 
+print(input_tableaux.keys())
+
+print(overt_tableaux.keys())
+
 ##### Part 2: Defining utility functions #######################################
 
-# Extract input from overt form
+def find_input(overt_string, input_tableaux):
+    potential_inps = []
+    for inp in input_tableaux.keys():
+        if overt_string in input_tableaux[inp].keys():
+            potential_inps.append(inp)
+    if len(potential_inps) == 0:
+        raise ValueError("No input found: "+overt_string+" is not a candidate in this grammar file.")
+    return potential_inps
+
+# Output is not 'found' from the tableaux in RIP-GLA.
+# In fact, the whole point of doing RIP is to find the right input.
+# E.g., is [H1 H2] analyzed as /(H1 H2)/ or /(H1) (H2)/?
 def get_input(overt_string):
     core_pattern = re.compile(r"\[(.*)\]")
     if not re.search(core_pattern, overt_string):
@@ -348,8 +363,9 @@ def learn(rip_viol_profile, generate_viol_profile, const_dict):
         else: # equal number of violations for the parse and the datum
             continue
     # Adjust the grammar according to the contraint classifications
-    return adjust_grammar(good_consts, bad_consts, const_dict)
+    return adjust_grammar(good_consts, bad_consts, const_dict)   
 
+'''
 ##### Part 3: Learning #########################################################
 
 # Timestamp for file
@@ -407,10 +423,10 @@ for t in target_list_shuffled:
 
     if noise:
         constraint_dict_noisy = add_noise(constraint_dict)
-        generation = generate(get_input(t), ranking(constraint_dict_noisy))
+        generation = generate(make_input(t), ranking(constraint_dict_noisy))
         rip_parse = rip(t, ranking(constraint_dict_noisy))
     else:
-        generation = generate(get_input(t), ranking(constraint_dict))
+        generation = generate(make_input(t), ranking(constraint_dict))
         rip_parse = rip(t, ranking(constraint_dict))
 
 
@@ -512,4 +528,4 @@ plt.ylim(0, max(intervals)+1)
 fig_path = result_file_path[:-4]+".pdf"
 plt.savefig(fig_path)
 plt.show()
-
+'''

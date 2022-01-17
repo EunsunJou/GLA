@@ -174,6 +174,17 @@ def get_input(output):
     
     raise ValueError("Could not find input for "+output+". Please check grammar file.")
 
+def get_input_two(overt_string, input_tableaux):
+    potential_inps = []
+    for inp in input_tableaux.keys():
+        if overt_string in input_tableaux[inp].keys():
+            potential_inps.append(inp)
+    if len(potential_inps) == 0:
+        raise ValueError("No input found: "+overt_string+" is not a candidate in this grammar file.")
+    
+    return potential_inps
+
+
 # Rank constraints in const_dict by their ranking value and return an ordered list
 def ranking(const_dict):
     ranked_list_raw=[]
@@ -332,102 +343,11 @@ change_counter = 0
 for t in target_list_shuffled:
     datum_counter += 1
 
-    pair = t.split(",")
-    inp = pair[0]
-    target = pair[1]
-
+    inp = get_input_two(t, input_tableaux)[0]
+    print("input: "+inp)
+    target = t
     plasticity = 2.0
     sigma = 10
-
-    if noise:    
-        generation = generate(inp, ranking(add_noise(constraint_dict, sigma)))
-    else:
-        generation = generate(inp, ranking(constraint_dict))
-
-    if generation[0] == target:
-        #print(constraint_dict)
-        #time.sleep(0.5)
-
-        learned_success_list.append(target)
-
-        for const in constraint_dict.keys():
-            trend_tracks[const].append(constraint_dict[const])    
-
-    else:
-        #print("ERROR: Observed "+target+" generated "+generation[0])
-
-        # new grammar
-        constraint_dict = learn(input_tableaux[inp][target], generation[1], constraint_dict, plasticity)
-        # new generation with new grammar
-        generation = generate(inp, ranking(constraint_dict))
-
-        change_counter += 1
-
-        #interval_track.append(datum_counter)
-
-        for const in constraint_dict.keys():
-            trend_tracks[const].append(constraint_dict[const])
-    
-    iteration_track.append(datum_counter)
-    learning_track.append(len(learned_success_list))
-
-    if datum_counter % 1000 == 0:
-        print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
-
-for t in target_list_shuffled:
-    datum_counter += 1
-
-    pair = t.split(",")
-    inp = pair[0]
-    target = pair[1]
-
-    plasticity = 0.2
-    sigma = 2.0
-
-    if noise:    
-        generation = generate(inp, ranking(add_noise(constraint_dict, sigma)))
-    else:
-        generation = generate(inp, ranking(constraint_dict))
-
-    if generation[0] == target:
-        #print(constraint_dict)
-        #time.sleep(0.5)
-
-        learned_success_list.append(target)
-
-        for const in constraint_dict.keys():
-            trend_tracks[const].append(constraint_dict[const])    
-
-    else:
-        #print("ERROR: Observed "+target+" generated "+generation[0])
-
-        # new grammar
-        constraint_dict = learn(input_tableaux[inp][target], generation[1], constraint_dict, plasticity)
-        # new generation with new grammar
-        generation = generate(inp, ranking(constraint_dict))
-
-        change_counter += 1
-
-        #interval_track.append(datum_counter)
-
-        for const in constraint_dict.keys():
-            trend_tracks[const].append(constraint_dict[const])
-    
-    iteration_track.append(datum_counter)
-    learning_track.append(len(learned_success_list))
-
-    if datum_counter % 1000 == 0:
-        print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
-
-for t in target_list_shuffled:
-    datum_counter += 1
-
-    pair = t.split(",")
-    inp = pair[0]
-    target = pair[1]
-
-    plasticity = 0.02
-    sigma = 2.0
 
     if noise:    
         generation = generate(inp, ranking(add_noise(constraint_dict, sigma)))
