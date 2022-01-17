@@ -479,7 +479,7 @@ def do_learning_RIP(target_list, init_grammar_RIP, plasticity=1.0, noise_bool=Tr
 
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
-                ranking_value_tracks[const].append(ranking_value_tracks[const])
+                ranking_value_tracks[const].append(const_dict[const])
         else:
             change_counter += 1
             # new grammar
@@ -491,7 +491,7 @@ def do_learning_RIP(target_list, init_grammar_RIP, plasticity=1.0, noise_bool=Tr
 
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
-                ranking_value_tracks[const].append(ranking_value_tracks[const])
+                ranking_value_tracks[const].append(const_dict[const])
             
             interval_track.append(datum_counter)
         
@@ -542,7 +542,7 @@ def do_learning(target_list, init_grammar, plasticity=1.0, noise_bool=True, nois
 
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
-                ranking_value_tracks[const].append(ranking_value_tracks[const])
+                ranking_value_tracks[const].append(const_dict[const])
         else:
             change_counter += 1
             # new grammar
@@ -552,7 +552,7 @@ def do_learning(target_list, init_grammar, plasticity=1.0, noise_bool=True, nois
 
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
-                ranking_value_tracks[const].append(ranking_value_tracks[const])
+                ranking_value_tracks[const].append(const_dict[const])
             
             interval_track.append(datum_counter)
         
@@ -626,200 +626,45 @@ def write_results(learning_result, lang_name, is_RIP=None):
     print("Output file: "+result_file_name[1:])
 
 
-if __name__ == "__main__":
-    pass
-
-
-'''
-def plot_results(learning_result, plot_ranking_values=True, plot_learning=True, plot_intervals=True, *args):
-    num_of_data = len(learning_result[2])
+def plot_results(learning_result, plot_rvs=True, plot_learning=True, plot_intervals=True):
+    num_of_data = learning_result[2]
     iteration_track = list(range(1, num_of_data+1))
     ranking_value_tracks = learning_result[7]
     learning_track = learning_result[8]
     interval_track = learning_result[9]
-    num_of_changes = learning_result[1]
 
-    num_of_plots = 0
-    for i in args:
-        if i == True:
-            num_of_plots += 1
-
-    if plot_ranking_values == True:
-        for const in ranking_value_tracks.keys():
-            plot_rv = plt.plot(iteration_track, ranking_value_tracks[const])
-
-    if plot_learning == True:
-        yticks_learning.append(len(learned_list))
-        plot_learning = plt.plot(iteration_track, learning_track)
-        plt.yticks(yticks_learning)
-
-
-
-
-string = grammar_string('./grammars/hypo02_grammar.txt')
-tgts = target_readlines('hypo02_1000_2syll.txt')
-
-grammar = init_grammar_RIP(string, 100)
-
-#inpt = build_input_tableaux_RIP(string)
-#ovtt = build_overt_tableaux_RIP(string)
-#cd = const_dict(string)
-
-tup = do_learning_RIP(tgts, grammar)
-
-write_results(tup, 'hypo02', True)
-
-
-
-##### Part 3: Learning #########################################################
-
-# Timestamp for file
-yy = str(datetime.datetime.now())[2:4]
-mm = str(datetime.datetime.now())[5:7]
-dd = str(datetime.datetime.now())[8:10]
-hh = str(datetime.datetime.now())[11:13]
-mn = str(datetime.datetime.now())[14:16]
-ss = str(datetime.datetime.now())[17:19]
-
-timestamp = yy+mm+dd+"_"+hh+mn+ss
-
-# Designate absolute path of results file and open it
-script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
-results_path = script_path + '\\results'
-result_file_name = "\\"+lang+"_"+str(syll_num)+"syll_"+timestamp+".txt"
-result_file_path = results_path + result_file_name
-results_file = open(result_file_path, 'w')
-
-
-# Learner will go through all words in target file, but in random order.
-target_list_shuffled = random.sample(target_list, len(target_list))
-target_set = set(target_list_shuffled)
-
-# list of items learned successfully
-learned_success_list = [] 
-
-# list of ranking values per constraint
-trend_tracks = {}
-for const in constraint_dict.keys():
-    trend_tracks[const] = [] 
-
-### Define variables to track
-# track the iteration number where change occurred
-# (will plot the interval between changes)
-interval_track = [] 
-# track number of learned tokens
-learning_track = []
-# track number of iterations for plotting
-iteration_track = []
-
-datum_counter = 0
-change_counter = 0
-
-# Actual learning loop
-
-for t in target_list_shuffled:
-    datum_counter += 1
-
-    if noise:
-        constraint_dict_noisy = add_noise(constraint_dict)
-        generation = generate(get_input(t), ranking(constraint_dict_noisy))
-        rip_parse = rip(t, ranking(constraint_dict_noisy))
-    else:
-        generation = generate(get_input(t), ranking(constraint_dict))
-        rip_parse = rip(t, ranking(constraint_dict))
-
-
-    if generation[0] == rip_parse[0]:
-        learned_success_list.append(t)
-
-        for const in constraint_dict.keys():
-            trend_tracks[const].append(constraint_dict[const])
-    else:
-        # new grammar
-        constraint_dict = learn(rip_parse[1], generation[1], constraint_dict)
-        # new generation with new grammar
-        generation = generate(get_input(t), ranking(constraint_dict))
-        # new rip parse with new grammar
-        rip_parse = rip(t, ranking(constraint_dict))
-        change_counter += 1
-
-        interval_track.append(datum_counter)
-
-        for const in constraint_dict.keys():
-            trend_tracks[const].append(constraint_dict[const])
+    list_of_plots = []
+    if plot_rvs == True:
+        list_of_plots.append('rvs')
     
-    iteration_track.append(datum_counter)
-    learning_track.append(len(learned_success_list))
+    if plot_learning == True:
+        list_of_plots.append('learning')
+    
+    if plot_intervals == True:
+        list_of_plots.append('intervals')
+    
+    if len(list_of_plots) == 0:
+        raise ValueError("None of the plot parameters were turned on ('True').")
 
-    if datum_counter % 1000 == 0:
-        print("input "+str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+    for p in list_of_plots:
+        if p == 'rvs':
+            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
+            for const in ranking_value_tracks.keys():
+                plt.plot(iteration_track, ranking_value_tracks[const])
+        elif p == 'learning':
+            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
+            plt.plot(iteration_track, learning_track)
+        elif p == 'intervals':
+            intervals = []
+            changes = []
+            for i in range(0, len(interval_track)-1):
+                intervals.append(interval_track[i+1]-interval_track[i])
+                changes.append(i+1)
+            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
+            plt.plot(changes, intervals)
 
-
-results_file.write("Grammar changed "+str(change_counter)+"/"+str(len(target_list_shuffled))+" times\n")
-
-results_file.write("Overt forms that were never learned:\n")
-learned_success_set = set(learned_success_list)
-failure_set = target_set.difference(learned_success_set)
-for x in sorted(failure_set):
-    results_file.write(x.rstrip()+"\n")
-
-results_file.write("Learned grammar:\n")
-ranked_constraints_post = ranking(constraint_dict)
-for const in ranked_constraints_post:
-    results_file.write(const+"\t"+str(constraint_dict[const])+"\n")
-
-
-print("Output file: "+result_file_name[1:])
-
-results_file.close()
-
-
-### Plotting
-intervals = []
-changes = []
-for i in range(0, len(interval_track)-1):
-    intervals.append(interval_track[i+1]-interval_track[i])
-    changes.append(i+1)
-
-plt.subplot(3, 1, 1)  
-for const in constraint_dict.keys():
-    plt.plot(iteration_track, trend_tracks[const], label=str(const))
-    #plt.xscale('log')
-
-#labelLines(plt.gca().get_lines(), align=False, fontsize=12)
-
-i = 0
-yticks_learning = []
-while i < len(learned_success_list):
-    if math.floor(len(learned_success_list)*0.25) == float(i):
-        yticks_learning.append(i)
-    elif math.floor(len(learned_success_list)*0.5) == float(i):
-        yticks_learning.append(i)
-    elif math.floor(len(learned_success_list)*0.75) == float(i):
-        yticks_learning.append(i)
-    else:
-        pass
-
-    i += 1
-
-yticks_learning.append(len(learned_success_list))
-
-plt.subplot(3, 1, 2)
-plt.plot(iteration_track, learning_track)
-#plt.xscale('log')
-plt.yticks(yticks_learning)
-# y-axis for learning track should be 1, 2, ..., num_of_datum_tokens
+    plt.show()
 
 
-
-plt.subplot(3, 1, 3)
-plt.plot(changes, intervals)
-plt.ylim(0, max(intervals)+1)
-#yticks_intervals = list(range(max(intervals)+1))
-#plt.yticks(yticks_intervals)
-
-
-fig_path = result_file_path[:-4]+".pdf"
-plt.savefig(fig_path)
-plt.show()
-'''
+if __name__ == "__main__":
+    pass
