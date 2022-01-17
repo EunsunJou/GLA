@@ -50,7 +50,7 @@ else:
 
 # The Grammar file is a specific format of a txt file created by Praat
 # (It is called an "otgrammar" object in the Praat documentation.
-grammar_file = open('PraatMetricalGrammar_2stress.txt', 'r')
+grammar_file = open('./grammars/PraatMetricalGrammar_2stress.txt', 'r')
 grammar_text = grammar_file.read()
 
 # The target file is the list of overt forms to be learned by the learner.
