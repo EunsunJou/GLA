@@ -567,8 +567,73 @@ def do_learning(target_list, init_grammar, plasticity=1.0, noise_bool=True, nois
 
     return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
 
+def timestamp_filepath(extension, label=''):
+    # Timestamp for file
+    yy = str(datetime.datetime.now())[2:4]
+    mm = str(datetime.datetime.now())[5:7]
+    dd = str(datetime.datetime.now())[8:10]
+    hh = str(datetime.datetime.now())[11:13]
+    mn = str(datetime.datetime.now())[14:16]
+    ss = str(datetime.datetime.now())[17:19]
+    timestamp = yy+mm+dd+"_"+hh+mn
 
-def write_results(learning_result, lang_name, is_RIP=None):
+    # Designate absolute path of results file and open it
+    script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
+    output_path = script_path + '\\results'
+    output_file_name = "\\"+label+"_"+timestamp+'.'+extension
+    output_file_path = output_path + output_file_name
+
+    return output_file_path
+
+
+def plot_results(learning_result, plot_rvs=True, plot_learning=True, plot_intervals=True, save=True):
+    num_of_data = learning_result[2]
+    iteration_track = list(range(1, num_of_data+1))
+    ranking_value_tracks = learning_result[7]
+    learning_track = learning_result[8]
+    interval_track = learning_result[9]
+
+    list_of_plots = []
+    if plot_rvs == True:
+        list_of_plots.append('rvs')
+    
+    if plot_learning == True:
+        list_of_plots.append('learning')
+    
+    if plot_intervals == True:
+        list_of_plots.append('intervals')
+    
+    if len(list_of_plots) == 0:
+        raise ValueError("None of the plot parameters were turned on ('True').")
+
+    plt.figure()
+
+    for p in list_of_plots:
+        if p == 'rvs':
+            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
+            for const in ranking_value_tracks.keys():
+                plt.plot(iteration_track, ranking_value_tracks[const])
+        elif p == 'learning':
+            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
+            plt.plot(iteration_track, learning_track)
+        elif p == 'intervals':
+            intervals = []
+            changes = []
+            for i in range(0, len(interval_track)-1):
+                intervals.append(interval_track[i+1]-interval_track[i])
+                changes.append(i+1)
+            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
+            plt.plot(changes, intervals)
+    
+    if save==True:
+        figure_file_path = timestamp_filepath('svg', 'hypo02')
+        plt.savefig(figure_file_path)
+        print("Figure file: "+figure_file_path)
+    else:
+        plt.show()
+
+
+def write_results(learning_result, is_RIP=None):
     const_dict = learning_result[0]
     change_counter = learning_result[1]
     num_of_data = learning_result[2]
@@ -577,21 +642,8 @@ def write_results(learning_result, lang_name, is_RIP=None):
     noise_bool = learning_result[5]
     noise_sigma = learning_result[6]
     
-    # Timestamp for file
-    yy = str(datetime.datetime.now())[2:4]
-    mm = str(datetime.datetime.now())[5:7]
-    dd = str(datetime.datetime.now())[8:10]
-    hh = str(datetime.datetime.now())[11:13]
-    mn = str(datetime.datetime.now())[14:16]
-    ss = str(datetime.datetime.now())[17:19]
-    timestamp = yy+mm+dd+"_"+hh+mn+ss
-
-    # Designate absolute path of results file and open it
-    script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
-    results_path = script_path + '\\results'
-    result_file_name = "\\"+lang_name+"_"+timestamp+".txt"
-    result_file_path = results_path + result_file_name
-    results_file = open(result_file_path, 'w')
+    results_file_path = timestamp_filepath('txt', 'hypo02')
+    results_file = open(results_file_path, 'w')
 
     # Write title
     if is_RIP == True:
@@ -623,48 +675,7 @@ def write_results(learning_result, lang_name, is_RIP=None):
             results_file.write(str(i)+"\n")
 
     results_file.close()
-    print("Output file: "+result_file_name[1:])
-
-
-def plot_results(learning_result, plot_rvs=True, plot_learning=True, plot_intervals=True):
-    num_of_data = learning_result[2]
-    iteration_track = list(range(1, num_of_data+1))
-    ranking_value_tracks = learning_result[7]
-    learning_track = learning_result[8]
-    interval_track = learning_result[9]
-
-    list_of_plots = []
-    if plot_rvs == True:
-        list_of_plots.append('rvs')
-    
-    if plot_learning == True:
-        list_of_plots.append('learning')
-    
-    if plot_intervals == True:
-        list_of_plots.append('intervals')
-    
-    if len(list_of_plots) == 0:
-        raise ValueError("None of the plot parameters were turned on ('True').")
-
-    for p in list_of_plots:
-        if p == 'rvs':
-            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
-            for const in ranking_value_tracks.keys():
-                plt.plot(iteration_track, ranking_value_tracks[const])
-        elif p == 'learning':
-            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
-            plt.plot(iteration_track, learning_track)
-        elif p == 'intervals':
-            intervals = []
-            changes = []
-            for i in range(0, len(interval_track)-1):
-                intervals.append(interval_track[i+1]-interval_track[i])
-                changes.append(i+1)
-            plt.subplot(len(list_of_plots), 1, list_of_plots.index(p)+1)
-            plt.plot(changes, intervals)
-
-    plt.show()
-
+    print("Output file: "+results_file_path)    
 
 if __name__ == "__main__":
     pass
