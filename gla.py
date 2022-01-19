@@ -205,7 +205,6 @@ def build_input_tableaux_RIP(grammar_string):
     
     return input_tableaux
 
-
 # Only RIP needs to build overt tableaux
 def build_overt_tableaux_RIP(grammar_string):
     tableaux_string = re.findall(tableau_pattern, grammar_string)
@@ -265,20 +264,8 @@ def build_overt_tableaux_RIP(grammar_string):
 
     return overt_tableaux
 
-def init_grammar(grammar_string, init_value=100):
-    input_tableaux = build_input_tableaux(grammar_string)
-    constraint_dict = const_dict(grammar_string, True, init_value)
-    return (input_tableaux, constraint_dict)
-
-def init_grammar_RIP(grammar_string, init_value=100):
-    input_tableaux = build_input_tableaux_RIP(grammar_string)
-    overt_tableaux = build_overt_tableaux_RIP(grammar_string)
-    constraint_dict = const_dict(grammar_string, True, init_value)
-    return (input_tableaux, overt_tableaux, constraint_dict)
-
-##### Part 2: Defining utility functions #######################################
 # Make constraint dictionary
-def const_dict(grammar_string, initiate=True, init_value=100.0):
+def const_dict(grammar_string, initiate=True, init_value=None):
     const_dict = {}
     consts_rv = re.findall(const_pattern, grammar_string)
     if initiate:
@@ -289,6 +276,29 @@ def const_dict(grammar_string, initiate=True, init_value=100.0):
             const_dict[str(const[0])] = float(const[1])
     return const_dict
 
+class grammar:
+    def __init__(self, grammar_string):
+        self.input_tableaux = build_input_tableaux(grammar_string)
+        self.const_dict = const_dict(grammar_string, initiate=False)
+
+class grammar_RIP:
+    def __init__(self, grammar_string):
+        self.input_tableaux = build_input_tableaux_RIP(grammar_string)
+        self.overt_tableaux = build_overt_tableaux_RIP(grammar_string)
+        self.const_dict = const_dict(grammar_string, initiate=False)
+
+class grammar_init:
+    def __init__(self, grammar_string, init_value=100):
+        self.input_tableaux = build_input_tableaux(grammar_string)
+        self.const_dict = const_dict(grammar_string, True, init_value)
+
+class grammar_init_RIP:
+    def __init__(self, grammar_string, init_value=100):
+        self.input_tableaux = build_input_tableaux_RIP(grammar_string)
+        self.overt_tableaux = build_overt_tableaux_RIP(grammar_string)
+        self.const_dict = const_dict(grammar_string, True, init_value)
+
+##### Part 2: Defining utility functions #######################################
 def find_input(overt_string, input_tableaux):
     potential_inps = []
     for inp in input_tableaux.keys():
@@ -418,7 +428,7 @@ def rip(overt, ranked_consts, overt_tableaux):
 # Adjusting the grammar, given the list of good and bad constraints
 def adjust_grammar(good_consts, bad_consts, const_dict, plasticity=1.0):
     for const in good_consts:
-        const_dict[const] = const_dict[const] + float(plasticity)
+        const_dict[const] = const_dict[const] + float(plasticity/len(good_consts))
     for const in bad_consts:
         const_dict[const] = const_dict[const] - float(plasticity)
     return const_dict
@@ -438,11 +448,85 @@ def learn(winner_viol_profile, loser_viol_profile, const_dict, plasticity):
     return adjust_grammar(good_consts, bad_consts, const_dict, plasticity)
 
 
+def do_learning(target_list, grammar, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+    input_tableaux = grammar.input_tableaux
+    const_dict = grammar.const_dict
+    
+    target_list_shuffled = random.sample(target_list, len(target_list))
+    target_set = set(target_list)
 
-def do_learning_RIP(target_list, init_grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
-    input_tableaux = init_grammar_RIP[0]
-    overt_tableaux = init_grammar_RIP[1]
-    const_dict = init_grammar_RIP[2]
+    datum_counter = 0
+    change_counter = 0
+    learned_list = []
+
+    # Data to be plotted
+    # track the iteration number where change occurred
+    # (will plot the interval between changes)
+    interval_track = [] 
+    # track number of learned tokens
+    learning_track = []
+    # Track ranking values for each constraint
+    ranking_value_tracks = {}
+    for const in const_dict.keys():
+        ranking_value_tracks[const] = []
+
+    for t in target_list_shuffled:
+        datum_counter += 1
+
+        inp = find_input(t, input_tableaux)[0]
+        if noise_bool==True:    
+            generation = generate(inp, ranking(add_noise(const_dict, noise_sigma)), input_tableaux)
+        else:
+            generation = generate(inp, ranking(const_dict), input_tableaux)
+
+        if generation[0] == t:
+            learned_list.append(t)
+
+            ### Export information for plotting
+            for const in ranking_value_tracks.keys():
+                ranking_value_tracks[const].append(const_dict[const])
+        else:
+            change_counter += 1
+            # new grammar
+            const_dict = learn(input_tableaux[inp][t], generation[1], const_dict, plasticity)
+            # new generation with new grammar
+            generation = generate(inp, ranking(const_dict), input_tableaux)
+
+            ### Export information for plotting
+            for const in ranking_value_tracks.keys():
+                ranking_value_tracks[const].append(const_dict[const])
+            
+            interval_track.append(datum_counter)
+        
+        ### Export information for plotting
+        learning_track.append(len(learned_list))
+
+        if print_bool==True and datum_counter % print_cycle == 0:
+            print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+    
+    learned_set = set(learned_list)
+    failed_set = target_set.difference(learned_set)
+
+    return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
+
+class learning:
+    def __init__(self, target_list, grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+        results = do_learning(target_list, grammar_RIP, plasticity, noise_bool, noise_sigma, print_bool, print_cycle)
+        self.const_dict = results[0]
+        self.change_counter = results[1]
+        self.num_of_data = results[2]
+        self.failed_set = results[3]
+        self.plasticity = results[4]
+        self.noise_bool = results[5]
+        self.noise_sigma = results[6]
+        self.ranking_value_tracks = results[7]
+        self.learning_track = results[8]
+        self.interval_track = results[9]
+
+def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+    input_tableaux = grammar_RIP.input_tableaux
+    overt_tableaux = grammar_RIP.overt_tableaux
+    const_dict = grammar_RIP.const_dict
     
     target_list_shuffled = random.sample(target_list, len(target_list))
     target_set = set(target_list)
@@ -506,66 +590,19 @@ def do_learning_RIP(target_list, init_grammar_RIP, plasticity=1.0, noise_bool=Tr
 
     return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
 
-def do_learning(target_list, init_grammar, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
-    input_tableaux = init_grammar[0]
-    const_dict = init_grammar[1]
-    
-    target_list_shuffled = random.sample(target_list, len(target_list))
-    target_set = set(target_list)
-
-    datum_counter = 0
-    change_counter = 0
-    learned_list = []
-
-    # Data to be plotted
-    # track the iteration number where change occurred
-    # (will plot the interval between changes)
-    interval_track = [] 
-    # track number of learned tokens
-    learning_track = []
-    # Track ranking values for each constraint
-    ranking_value_tracks = {}
-    for const in const_dict.keys():
-        ranking_value_tracks[const] = []
-
-    for t in target_list_shuffled:
-        datum_counter += 1
-
-        inp = find_input(t, input_tableaux)[0]
-        if noise_bool==True:    
-            generation = generate(inp, ranking(add_noise(const_dict, noise_sigma)), input_tableaux)
-        else:
-            generation = generate(inp, ranking(const_dict), input_tableaux)
-
-        if generation[0] == t:
-            learned_list.append(t)
-
-            ### Export information for plotting
-            for const in ranking_value_tracks.keys():
-                ranking_value_tracks[const].append(const_dict[const])
-        else:
-            change_counter += 1
-            # new grammar
-            const_dict = learn(input_tableaux[inp][t], generation[1], const_dict, plasticity)
-            # new generation with new grammar
-            generation = generate(inp, ranking(const_dict), input_tableaux)
-
-            ### Export information for plotting
-            for const in ranking_value_tracks.keys():
-                ranking_value_tracks[const].append(const_dict[const])
-            
-            interval_track.append(datum_counter)
-        
-        ### Export information for plotting
-        learning_track.append(len(learned_list))
-
-        if print_bool==True and datum_counter % print_cycle == 0:
-            print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
-    
-    learned_set = set(learned_list)
-    failed_set = target_set.difference(learned_set)
-
-    return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
+class learning_RIP:
+    def __init__(self, target_list, grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+        results = do_learning_RIP(target_list, grammar_RIP, plasticity, noise_bool, noise_sigma, print_bool, print_cycle)
+        self.const_dict = results[0]
+        self.change_counter = results[1]
+        self.num_of_data = results[2]
+        self.failed_set = results[3]
+        self.plasticity = results[4]
+        self.noise_bool = results[5]
+        self.noise_sigma = results[6]
+        self.ranking_value_tracks = results[7]
+        self.learning_track = results[8]
+        self.interval_track = results[9]
 
 def timestamp_filepath(extension, label=''):
     # Timestamp for file
@@ -585,13 +622,12 @@ def timestamp_filepath(extension, label=''):
 
     return output_file_path
 
-
 def plot_results(learning_result, plot_rvs=True, plot_learning=True, plot_intervals=True, save=True):
-    num_of_data = learning_result[2]
+    num_of_data = learning_result.num_of_data
     iteration_track = list(range(1, num_of_data+1))
-    ranking_value_tracks = learning_result[7]
-    learning_track = learning_result[8]
-    interval_track = learning_result[9]
+    ranking_value_tracks = learning_result.ranking_value_tracks
+    learning_track = learning_result.learning_track
+    interval_track = learning_result.interval_track
 
     list_of_plots = []
     if plot_rvs == True:
@@ -634,13 +670,13 @@ def plot_results(learning_result, plot_rvs=True, plot_learning=True, plot_interv
 
 
 def write_results(learning_result, is_RIP=None):
-    const_dict = learning_result[0]
-    change_counter = learning_result[1]
-    num_of_data = learning_result[2]
-    failed_set = learning_result[3]
-    plasticity = learning_result[4]
-    noise_bool = learning_result[5]
-    noise_sigma = learning_result[6]
+    const_dict = learning_result.const_dict
+    change_counter = learning_result.change_counter
+    num_of_data = learning_result.num_of_data
+    failed_set = learning_result.failed_set
+    plasticity = learning_result.plasticity
+    noise_bool = learning_result.noise_bool
+    noise_sigma = learning_result.noise_sigma
     
     results_file_path = timestamp_filepath('txt', 'hypo02')
     results_file = open(results_file_path, 'w')
