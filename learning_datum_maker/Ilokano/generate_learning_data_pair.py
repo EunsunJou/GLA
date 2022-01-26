@@ -28,7 +28,7 @@ output_file = open(data_file_name, 'w', encoding='utf=8')
 
 overts = input_file.readlines()
 
-pattern = re.compile("(\[.*\])\t(\d+)")
+pattern = re.compile("(.*,.*)\t(\d+)")
 
 for l in overts:
     match = re.findall(pattern, l)
