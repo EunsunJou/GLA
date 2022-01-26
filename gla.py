@@ -674,6 +674,35 @@ def timestamp_filepath(extension, label=''):
 
     return output_file_path
 
+def eval_errors(learning):
+    target_set = set(learning.target_list)
+    ranked_consts = ranking(learning.const_dict)
+    used_grammar = learning.grammar
+    tableaux = used_grammar.i2o_tableaux
+    error_list = []
+    for t in target_set:
+        learned_form = generate(find_input(t, tableaux)[0], ranked_consts, tableaux)[0]
+        if learned_form != t:
+            error_compare = ' '.join([t, learned_form])
+            error_list.append(error_compare)
+    return error_list
+
+def eval_errors_RIP(learning):
+    target_set = set(learning.target_list)
+    ranked_consts = ranking(learning.const_dict)
+    used_grammar = learning.grammar
+    i2o_tableaux = used_grammar.i2o_tableaux
+    o2p_tableaux = used_grammar.o2p_tableaux
+    error_list = []
+    for t in target_set:
+        learned_form = generate(find_input(t, i2o_tableaux)[0], ranked_consts, i2o_tableaux)[0]
+        if learned_form != t:
+            learned_parse = generate(learned_form, ranked_consts, o2p_tableaux)[0]
+            error_compare = ' '.join([t, learned_form, learned_parse])
+            error_list.append(error_compare)
+    return error_list
+
+
 def plot_results(learning_result, plot_rvs=True, plot_learning=True, plot_intervals=True, save=True):
     num_of_data = learning_result.num_of_data
     iteration_track = list(range(1, num_of_data+1))
