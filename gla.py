@@ -656,6 +656,87 @@ class learning_RIP:
         self.grammar = grammar_RIP
         self.target_list = target_list
 
+def do_batch_learning_RIP(target_list, grammar_RIP, batch=100, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+    i2p_tableaux = grammar_RIP.i2p_tableaux
+    o2p_tableaux = grammar_RIP.o2p_tableaux
+    const_dict = grammar_RIP.const_dict
+    
+    target_set = set(target_list)
+
+    datum_counter = 0
+    change_counter = 0
+    learned_list = []
+
+    # Data to be plotted
+    # track the iteration number where change occurred
+    # (will plot the interval between changes)
+    interval_track = [] 
+    # track number of learned tokens
+    learning_track = []
+    # Track ranking values for each constraint
+    ranking_value_tracks = {}
+    for const in const_dict.keys():
+        ranking_value_tracks[const] = []
+
+    for i in range(batch):
+        target_list_shuffled = random.sample(target_list, len(target_list))
+        for t in target_list_shuffled:
+            datum_counter += 1
+            if noise_bool==True:
+                const_dict_noisy = add_noise(const_dict, noise_sigma)
+                generation = generate(make_input(t), ranking(const_dict_noisy), i2p_tableaux)
+                rip_parse = generate(t, ranking(const_dict_noisy), o2p_tableaux)
+            else:
+                generation = generate(make_input(t), ranking(const_dict), i2p_tableaux)
+                rip_parse = generate(t, ranking(const_dict), o2p_tableaux)
+
+            if generation[0] == rip_parse[0]:
+                learned_list.append(t)
+                ### Export information for plotting
+                for const in ranking_value_tracks.keys():
+                    ranking_value_tracks[const].append(const_dict[const])
+            else:
+                change_counter += 1
+                # new grammar
+                const_dict = learn(rip_parse[1], generation[1], const_dict, plasticity)
+                # new generation with new grammar
+                generation = generate(make_input(t), ranking(const_dict), i2p_tableaux)
+                # new rip parse with new grammar
+                rip_parse = generate(t, ranking(const_dict), o2p_tableaux)
+
+                ### Export information for plotting
+                for const in ranking_value_tracks.keys():
+                    ranking_value_tracks[const].append(const_dict[const])
+                
+                interval_track.append(datum_counter)
+            
+            ### Export information for plotting
+            learning_track.append(len(learned_list))
+
+    if print_bool and datum_counter % print_cycle == 0:
+        print(str(datum_counter)+" out of "+str(len(target_list_shuffled))+" learned")
+
+    learned_set = set(learned_list)
+    failed_set = target_set.difference(learned_set)
+
+    return (const_dict, change_counter, datum_counter, failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
+
+class batch_learnig_RIP:
+    def __init__(self, target_list, grammar_RIP, batch=100, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+        results = do_batch_learning_RIP(target_list, grammar_RIP, batch, plasticity, noise_bool, noise_sigma, print_bool, print_cycle)
+        self.const_dict = results[0]
+        self.change_counter = results[1]
+        self.num_of_data = results[2]
+        self.failed_set = results[3]
+        self.plasticity = results[4]
+        self.noise_bool = results[5]
+        self.noise_sigma = results[6]
+        self.ranking_value_tracks = results[7]
+        self.learning_track = results[8]
+        self.interval_track = results[9]
+        self.grammar = grammar_RIP
+        self.target_list = target_list
+
 def timestamp_filepath(extension, label=''):
     # Timestamp for file
     yy = str(datetime.datetime.now())[2:4]
