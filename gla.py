@@ -27,6 +27,7 @@ import datetime
 import os
 import matplotlib.pyplot as plt
 import math
+import time
 
 #lang = sys.argv[1][:6]
 #syll_num = sys.argv[1][-9]
@@ -126,7 +127,7 @@ Schematic structure of a tableau in Grammar File:
 
 ### Now we can build the two tableaux.
 # Build input_tableaux -- code very similar to overt_tableaux
-def build_input_tableaux(grammar_string):
+def build_tableaux(grammar_string):
     tableaux_string = re.findall(tableau_pattern, grammar_string)
     tableaux_string = [t[0] for t in tableaux_string]
     consts = re.findall(const_pattern, grammar_string)
@@ -162,13 +163,56 @@ def build_input_tableaux(grammar_string):
     
     return input_tableaux
 
-def build_input_tableaux_RIP(grammar_string):
+def build_tableaux_RIP_i2o(grammar_string):
     tableaux_string = re.findall(tableau_pattern, grammar_string)
     tableaux_string = [t[0] for t in tableaux_string]
     consts = re.findall(const_pattern, grammar_string)
     consts = [c[0] for c in consts]
     
-    input_tableaux = {}
+    tableaux = {}
+    for t in tableaux_string:
+        # Since there's only one input form per tableau,
+        # re.findall should always yield a list of length 1)
+        if len(re.findall(input_pattern, t)) == 0:
+            raise ValueError("No input found in the following tableaux_string. Pleae check grammar file.\n"+t)
+        elif len(re.findall(input_pattern, t)) > 1:
+            raise ValueError("Found more than one input form in tableau. Please check grammar file.")
+
+        inp = re.findall(input_pattern, t)[0]
+
+        # Access the candidates again, to pick out parse and violation profile.
+        # Each element of candidates is a (<candidate>, <violation profile>) tuple.
+        candidates_match = re.findall(candidate_pattern, t)
+        
+        # Following for-loop is identical to overt_tableaux
+        overt_evals = {}
+        for match in candidates_match:
+            # The candidate string for an RIP includes both the parse and the output.
+            # I.e., "/output/ \-> [parse]"
+            parse_and_overt = match[0]
+            if len(re.findall(rip_pattern, parse_and_overt)) != 1:
+                raise ValueError("Candidate "+match[0]+" doesn't look like an RIP candidate. Please check grammar file.")
+            overt = re.findall(rip_pattern, parse_and_overt)[0][0]
+            parse = re.findall(rip_pattern, parse_and_overt)[0][1]
+            viols_string = match[1]
+
+            viols = viols_string.rstrip().split(' ')
+            viols = [int(x) for x in viols] 
+
+            viol_profile = map_lists_to_dict(consts, viols)
+            overt_evals[overt] = viol_profile
+            
+        tableaux[inp] = overt_evals
+    
+    return tableaux
+
+def build_tableaux_RIP_i2p(grammar_string):
+    tableaux_string = re.findall(tableau_pattern, grammar_string)
+    tableaux_string = [t[0] for t in tableaux_string]
+    consts = re.findall(const_pattern, grammar_string)
+    consts = [c[0] for c in consts]
+    
+    tableaux = {}
     for t in tableaux_string:
         # Since there's only one input form per tableau,
         # re.findall should always yield a list of length 1)
@@ -190,7 +234,7 @@ def build_input_tableaux_RIP(grammar_string):
             # I.e., "/output/ \-> [parse]"
             parse_and_overt = match[0]
             if len(re.findall(rip_pattern, parse_and_overt)) != 1:
-                raise ValueError("Candidate "+cand+" doesn't look like an RIP candidate. Please check grammar file.")
+                raise ValueError("Candidate "+match[0]+" doesn't look like an RIP candidate. Please check grammar file.")
             overt = re.findall(rip_pattern, parse_and_overt)[0][0]
             parse = re.findall(rip_pattern, parse_and_overt)[0][1]
             viols_string = match[1]
@@ -201,12 +245,12 @@ def build_input_tableaux_RIP(grammar_string):
             viol_profile = map_lists_to_dict(consts, viols)
             parse_evals[parse] = viol_profile
             
-        input_tableaux[inp] = parse_evals
+        tableaux[inp] = parse_evals
     
-    return input_tableaux
+    return tableaux
 
 # Only RIP needs to build overt tableaux
-def build_overt_tableaux_RIP(grammar_string):
+def build_tableaux_RIP_o2p(grammar_string):
     tableaux_string = re.findall(tableau_pattern, grammar_string)
     tableaux_string = [t[0] for t in tableaux_string]
     consts = re.findall(const_pattern, grammar_string)
@@ -278,24 +322,26 @@ def const_dict(grammar_string, initiate=True, init_value=None):
 
 class grammar:
     def __init__(self, grammar_string):
-        self.input_tableaux = build_input_tableaux(grammar_string)
+        self.i2o_tableaux = build_tableaux(grammar_string)
         self.const_dict = const_dict(grammar_string, initiate=False)
 
 class grammar_RIP:
     def __init__(self, grammar_string):
-        self.input_tableaux = build_input_tableaux_RIP(grammar_string)
-        self.overt_tableaux = build_overt_tableaux_RIP(grammar_string)
+        self.i2p_tableaux = build_tableaux_RIP_i2p(grammar_string)
+        self.o2p_tableaux = build_tableaux_RIP_o2p(grammar_string)
+        self.i2o_tableaux = build_tableaux_RIP_i2o(grammar_string)
         self.const_dict = const_dict(grammar_string, initiate=False)
 
 class grammar_init:
     def __init__(self, grammar_string, init_value=100):
-        self.input_tableaux = build_input_tableaux(grammar_string)
+        self.i2o_tableaux = build_tableaux(grammar_string)
         self.const_dict = const_dict(grammar_string, True, init_value)
 
 class grammar_init_RIP:
     def __init__(self, grammar_string, init_value=100):
-        self.input_tableaux = build_input_tableaux_RIP(grammar_string)
-        self.overt_tableaux = build_overt_tableaux_RIP(grammar_string)
+        self.i2p_tableaux = build_tableaux_RIP_i2p(grammar_string)
+        self.o2p_tableaux = build_tableaux_RIP_o2p(grammar_string)
+        self.i2o_tableaux = build_tableaux_RIP_i2o(grammar_string)
         self.const_dict = const_dict(grammar_string, True, init_value)
 
 ##### Part 2: Defining utility functions #######################################
@@ -393,22 +439,23 @@ def optimize(tableau_viol_only):
 
 # Produce a winning parse given an input and constraint ranking
 # (Basically a run-of-the-mill OT tableau)
-def generate(inp, ranked_consts, input_tableaux):
+def generate(inp, ranked_consts, tableaux):
     # Pick out the constraints that *are* violated (i.e., violation > 0)
     # This "sub-dictionary" will be fed into the optimize function
     tableau_viol_only = {}
-    for parse in input_tableaux[inp].keys():
+    for parse in tableaux[inp].keys():
         tableau_viol_only[parse] = []
-        for const, viol in input_tableaux[inp][parse].items():
+        for const, viol in tableaux[inp][parse].items():
             if viol > 0:
                 tableau_viol_only[parse].append((parse, ranked_consts.index(const), const, viol))
         tableau_viol_only[parse] = sorted(tableau_viol_only[parse], key = lambda x:x[1])
 
     gen_parse = optimize(tableau_viol_only)[0]
-    gen_viol_profile = input_tableaux[inp][gen_parse]
+    gen_viol_profile = tableaux[inp][gen_parse]
     
     return (gen_parse, gen_viol_profile)
-        
+
+'''
 # Produce a winning parse given an overt form and constraint ranking
 # Very similar to generate, except that the candidates are not inputs but overts
 def rip(overt, ranked_consts, overt_tableaux):
@@ -424,6 +471,7 @@ def rip(overt, ranked_consts, overt_tableaux):
     rip_viol_profile = overt_tableaux[overt][rip_parse]
     
     return (rip_parse, rip_viol_profile)
+'''
 
 # Adjusting the grammar, given the list of good and bad constraints
 def adjust_grammar(good_consts, bad_consts, const_dict, plasticity=1.0):
@@ -449,7 +497,7 @@ def learn(winner_viol_profile, loser_viol_profile, const_dict, plasticity):
 
 
 def do_learning(target_list, grammar, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
-    input_tableaux = grammar.input_tableaux
+    i2o_tableaux = grammar.i2o_tableaux
     const_dict = grammar.const_dict
     
     target_list_shuffled = random.sample(target_list, len(target_list))
@@ -473,11 +521,11 @@ def do_learning(target_list, grammar, plasticity=1.0, noise_bool=True, noise_sig
     for t in target_list_shuffled:
         datum_counter += 1
 
-        inp = find_input(t, input_tableaux)[0]
+        inp = find_input(t, i2o_tableaux)[0]
         if noise_bool==True:    
-            generation = generate(inp, ranking(add_noise(const_dict, noise_sigma)), input_tableaux)
+            generation = generate(inp, ranking(add_noise(const_dict, noise_sigma)), i2o_tableaux)
         else:
-            generation = generate(inp, ranking(const_dict), input_tableaux)
+            generation = generate(inp, ranking(const_dict), i2o_tableaux)
 
         if generation[0] == t:
             learned_list.append(t)
@@ -488,9 +536,9 @@ def do_learning(target_list, grammar, plasticity=1.0, noise_bool=True, noise_sig
         else:
             change_counter += 1
             # new grammar
-            const_dict = learn(input_tableaux[inp][t], generation[1], const_dict, plasticity)
+            const_dict = learn(i2o_tableaux[inp][t], generation[1], const_dict, plasticity)
             # new generation with new grammar
-            generation = generate(inp, ranking(const_dict), input_tableaux)
+            generation = generate(inp, ranking(const_dict), i2o_tableaux)
 
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
@@ -510,8 +558,8 @@ def do_learning(target_list, grammar, plasticity=1.0, noise_bool=True, noise_sig
     return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
 
 class learning:
-    def __init__(self, target_list, grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
-        results = do_learning(target_list, grammar_RIP, plasticity, noise_bool, noise_sigma, print_bool, print_cycle)
+    def __init__(self, target_list, grammar, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+        results = do_learning(target_list, grammar, plasticity, noise_bool, noise_sigma, print_bool, print_cycle)
         self.const_dict = results[0]
         self.change_counter = results[1]
         self.num_of_data = results[2]
@@ -522,10 +570,12 @@ class learning:
         self.ranking_value_tracks = results[7]
         self.learning_track = results[8]
         self.interval_track = results[9]
+        self.grammar = grammar
+        self.target_list = target_list
 
 def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
-    input_tableaux = grammar_RIP.input_tableaux
-    overt_tableaux = grammar_RIP.overt_tableaux
+    i2p_tableaux = grammar_RIP.i2p_tableaux
+    o2p_tableaux = grammar_RIP.o2p_tableaux
     const_dict = grammar_RIP.const_dict
     
     target_list_shuffled = random.sample(target_list, len(target_list))
@@ -552,11 +602,11 @@ def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, n
 
         if noise_bool==True:
             const_dict_noisy = add_noise(const_dict, noise_sigma)
-            generation = generate(make_input(t), ranking(const_dict_noisy), input_tableaux)
-            rip_parse = rip(t, ranking(const_dict_noisy), overt_tableaux)
+            generation = generate(make_input(t), ranking(const_dict_noisy), i2p_tableaux)
+            rip_parse = generate(t, ranking(const_dict_noisy), o2p_tableaux)
         else:
-            generation = generate(make_input(t), ranking(const_dict), input_tableaux)
-            rip_parse = rip(t, ranking(const_dict), overt_tableaux)
+            generation = generate(make_input(t), ranking(const_dict), i2p_tableaux)
+            rip_parse = generate(t, ranking(const_dict), o2p_tableaux)
 
         if generation[0] == rip_parse[0]:
             learned_list.append(t)
@@ -569,9 +619,9 @@ def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, n
             # new grammar
             const_dict = learn(rip_parse[1], generation[1], const_dict, plasticity)
             # new generation with new grammar
-            generation = generate(make_input(t), ranking(const_dict), input_tableaux)
+            generation = generate(make_input(t), ranking(const_dict), i2p_tableaux)
             # new rip parse with new grammar
-            rip_parse = rip(t, ranking(const_dict), overt_tableaux)
+            rip_parse = generate(t, ranking(const_dict), o2p_tableaux)
 
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
@@ -603,6 +653,8 @@ class learning_RIP:
         self.ranking_value_tracks = results[7]
         self.learning_track = results[8]
         self.interval_track = results[9]
+        self.grammar = grammar_RIP
+        self.target_list = target_list
 
 def timestamp_filepath(extension, label=''):
     # Timestamp for file
@@ -612,7 +664,7 @@ def timestamp_filepath(extension, label=''):
     hh = str(datetime.datetime.now())[11:13]
     mn = str(datetime.datetime.now())[14:16]
     ss = str(datetime.datetime.now())[17:19]
-    timestamp = yy+mm+dd+"_"+hh+mn
+    timestamp = yy+mm+dd+"_"+hh+mn+ss
 
     # Designate absolute path of results file and open it
     script_path = os.path.dirname(os.path.realpath(sys.argv[0])) #<-- absolute dir the script is in
@@ -668,7 +720,6 @@ def plot_results(learning_result, plot_rvs=True, plot_learning=True, plot_interv
     else:
         plt.show()
 
-
 def write_results(learning_result, is_RIP=None):
     const_dict = learning_result.const_dict
     change_counter = learning_result.change_counter
@@ -709,9 +760,27 @@ def write_results(learning_result, is_RIP=None):
         results_file.write("Overt forms that were never learned:")
         for i in failed_set:
             results_file.write(str(i)+"\n")
+    
+    if is_RIP == True:
+        errors = eval_errors_RIP(learning_result)
+    else:
+        errors = eval_errors(learning_result)
+    
+    if len(errors) == 0:
+        results_file.write("\nNo errors found in evaluation")
+    elif len(errors) > 0:
+        results_file.write("\n"+str(len(errors))+" errors found in evaluation (target, learned form, (learned parse)):\n")
+        for e in errors:
+            results_file.write(e+"\n")
 
     results_file.close()
     print("Output file: "+results_file_path)    
+
+
+    
+    
+
+
 
 if __name__ == "__main__":
     pass
