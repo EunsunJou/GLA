@@ -200,7 +200,7 @@ def build_tableaux_RIP_i2o(grammar_string):
             viols = [int(x) for x in viols] 
 
             viol_profile = map_lists_to_dict(consts, viols)
-            overt_evals[overt] = viol_profile
+            overt_evals[(overt, parse)] = viol_profile
             
         tableaux[inp] = overt_evals
     
@@ -574,8 +574,13 @@ class learning:
         self.target_list = target_list
 
 def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, noise_sigma=2.0, print_bool=True, print_cycle=1000):
+
+    #logfilename = timestamp_filepath('txt', 'log')
+    #logfile = open(logfilename, 'w')
+
     i2p_tableaux = grammar_RIP.i2p_tableaux
     o2p_tableaux = grammar_RIP.o2p_tableaux
+    i2o_tableaux = grammar_RIP.i2o_tableaux
     const_dict = grammar_RIP.const_dict
     
     target_list_shuffled = random.sample(target_list, len(target_list))
@@ -600,6 +605,8 @@ def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, n
     for t in target_list_shuffled:
         datum_counter += 1
 
+        errors = ['[H1 L L L H2]', '[L1 L L L H2]', '[H1 L L H2 H2]', '[H1 L L H2 L]', '[H1 L L H2]', '[H1 H2 L L H2]', '[L H1 L L H2]']
+
         if noise_bool==True:
             const_dict_noisy = add_noise(const_dict, noise_sigma)
             generation = generate(make_input(t), ranking(const_dict_noisy), i2p_tableaux)
@@ -614,7 +621,14 @@ def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, n
             ### Export information for plotting
             for const in ranking_value_tracks.keys():
                 ranking_value_tracks[const].append(const_dict[const])
+            
+            #if t in errors:
+            #    logfile.write("\n"+str(datum_counter)+": Target: "+t+"\nGenerated Parse: "+generation[0]+", RIP Parse: "+rip_parse[0]+"\n")
         else:
+            gen_overt = generate(make_input(t), ranking(const_dict), i2o_tableaux)
+            #logfile.write("\nError at "+str(datum_counter)+"\n")
+            #logfile.write("\nTarget: "+t+", Generated Form: "+gen_overt[0]+"\nGenerated Parse: "+generation[0]+", RIP Parse: "+rip_parse[0]+"\n")
+
             change_counter += 1
             # new grammar
             const_dict = learn(rip_parse[1], generation[1], const_dict, plasticity)
@@ -637,6 +651,8 @@ def do_learning_RIP(target_list, grammar_RIP, plasticity=1.0, noise_bool=True, n
 
     learned_set = set(learned_list)
     failed_set = target_set.difference(learned_set)
+
+    #logfile.close()
 
     return (const_dict, change_counter, len(target_list), failed_set, plasticity, noise_bool, noise_sigma, ranking_value_tracks, learning_track, interval_track)
 
@@ -776,8 +792,9 @@ def eval_errors_RIP(learning):
     o2p_tableaux = used_grammar.o2p_tableaux
     error_list = []
     for t in target_set:
-        learned_form = generate(find_input(t, i2o_tableaux)[0], ranked_consts, i2o_tableaux)[0]
+        learned_form = generate(make_input(t), ranked_consts, i2o_tableaux)[0][0]
         if learned_form != t:
+            print("Error: Learned "+learned_form+', target '+t)
             learned_parse = generate(learned_form, ranked_consts, o2p_tableaux)[0]
             error_compare = ' '.join([t, learned_form, learned_parse])
             error_list.append(error_compare)
@@ -838,6 +855,7 @@ def write_results(learning_result, is_RIP=None):
     plasticity = learning_result.plasticity
     noise_bool = learning_result.noise_bool
     noise_sigma = learning_result.noise_sigma
+    interval_track = learning_result.interval_track
     
     results_file_path = timestamp_filepath('txt', 'hypo02')
     results_file = open(results_file_path, 'w')
@@ -883,12 +901,13 @@ def write_results(learning_result, is_RIP=None):
         for e in errors:
             results_file.write(e+"\n")
 
+    results_file.write("\nError chews:\n")
+    interval_track_string = [str(x) for x in interval_track]
+    errors_string = "\n".join(interval_track_string)
+    results_file.write(errors_string)
+
     results_file.close()
     print("Output file: "+results_file_path)    
-
-
-    
-    
 
 
 
