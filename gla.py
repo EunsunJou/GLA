@@ -51,7 +51,7 @@ def grammar_readlines(txtfile):
     grammar_file.close()
     return grammar_lines
 
-def target_readlines(txtfile):
+def read_and_rstrip(txtfile):
     target_file = open(txtfile, 'r')
     target_list = target_file.readlines()
     target_list = [x.rstrip() for x in target_list]
@@ -771,30 +771,40 @@ def timestamp_filepath(extension, label=''):
 
     return output_file_path
 
-def eval_errors(learning):
-    target_set = set(learning.target_list)
+def eval_errors(learning, num):
+    target_list = learning.target_list
     ranked_consts = ranking(learning.const_dict)
     used_grammar = learning.grammar
     tableaux = used_grammar.i2o_tableaux
     error_list = []
-    for t in target_set:
+
+    i = 0
+    while i < num:
+        i += 1
+        t = random.sample(target_list, 1)[0]
         learned_form = generate(find_input(t, tableaux)[0], ranked_consts, tableaux)[0]
         if learned_form != t:
+            print("Eval error: Learned "+learned_form+', target '+t)
             error_compare = ' '.join([t, learned_form])
             error_list.append(error_compare)
     return error_list
 
-def eval_errors_RIP(learning):
-    target_set = set(learning.target_list)
-    ranked_consts = ranking(learning.const_dict)
+def eval_errors_RIP(learning, num):
+    target_list = learning.target_list
     used_grammar = learning.grammar
     i2o_tableaux = used_grammar.i2o_tableaux
     o2p_tableaux = used_grammar.o2p_tableaux
     error_list = []
-    for t in target_set:
+
+    i=0
+    while i<num:
+        i += 1
+        const_dict = learning.const_dict
+        ranked_consts = ranking(add_noise(const_dict, 2.0))
+        t = random.sample(target_list, 1)[0]
         learned_form = generate(make_input(t), ranked_consts, i2o_tableaux)[0][0]
         if learned_form != t:
-            print("Error: Learned "+learned_form+', target '+t)
+            print("Eval error: Learned "+learned_form+', target '+t)
             learned_parse = generate(learned_form, ranked_consts, o2p_tableaux)[0]
             error_compare = ' '.join([t, learned_form, learned_parse])
             error_list.append(error_compare)
@@ -890,9 +900,9 @@ def write_results(learning_result, is_RIP=None):
             results_file.write(str(i)+"\n")
     
     if is_RIP == True:
-        errors = eval_errors_RIP(learning_result)
+        errors = eval_errors_RIP(learning_result, 1000)
     else:
-        errors = eval_errors(learning_result)
+        errors = eval_errors(learning_result, 1000)
     
     if len(errors) == 0:
         results_file.write("\nNo errors found in evaluation")
@@ -901,10 +911,10 @@ def write_results(learning_result, is_RIP=None):
         for e in errors:
             results_file.write(e+"\n")
 
-    results_file.write("\nError chews:\n")
-    interval_track_string = [str(x) for x in interval_track]
-    errors_string = "\n".join(interval_track_string)
-    results_file.write(errors_string)
+    #results_file.write("\nError chews:\n")
+    #interval_track_string = [str(x) for x in interval_track]
+    #errors_string = "\n".join(interval_track_string)
+    #results_file.write(errors_string)
 
     results_file.close()
     print("Output file: "+results_file_path)    
